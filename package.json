@@ -1,11 +1,12 @@
 {
-  "name": "vscode-copilot-tips",
+  "name": "thinking-phrases",
   "version": "1.0.0",
-  "description": "VS Code tips and tricks as custom thinking phrases — like loading screen tips in video games",
+  "description": "Curated thinking phrase packs for VS Code and beyond — like loading screen tips for AI",
   "scripts": {
     "build": "tsx scripts/build.ts"
   },
   "devDependencies": {
+    "@types/node": "^25.3.5",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   },
