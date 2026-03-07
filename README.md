@@ -10,6 +10,8 @@ npx thinking-phrases --interactive
 
 That's it. No install, no clone, no config files. The interactive CLI walks you through picking sources, previewing phrases, writing to VS Code settings, and optionally installing a macOS scheduler.
 
+Or maybe you just want the [static thinking phrases](https://github.com/austenstone/thinking-phrases/tree/main/out)
+
 ## Features
 
 ### 8 live data sources
