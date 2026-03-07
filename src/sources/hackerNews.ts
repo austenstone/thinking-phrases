@@ -48,18 +48,20 @@ export async function fetchHackerNewsArticles(config: import('../core/types.js')
     .slice(0, config.hackerNews.maxItems)
     .map(item => {
       const datetime = item.time ? new Date(item.time * 1000).toISOString() : undefined;
-      const score = typeof item.score === 'number' ? `${item.score} points` : undefined;
-      const comments = typeof item.descendants === 'number' ? `${item.descendants} comments` : undefined;
-      const title = [item.title?.trim(), [score, comments].filter(Boolean).join(' • ')].filter(Boolean).join(' — ');
+      const trimmedTitle = item.title?.trim() ?? '';
+      const relativeTimestamp = relativeTime(datetime);
+      const score = typeof item.score === 'number' ? `+${item.score}` : undefined;
+      const displayPhrase = [`HN: ${trimmedTitle}`, score, relativeTimestamp].filter(Boolean).join(' — ');
 
       return {
         type: 'article' as const,
         id: `hacker-news:${item.id}`,
-        title,
+        title: trimmedTitle,
+        displayPhrase,
         link: buildHackerNewsLink(item.id, item.url),
         source: 'Hacker News',
         datetime,
-        time: relativeTime(datetime),
+        time: relativeTimestamp,
         content: stripHtml(item.text),
         articleContent: stripHtml(item.text),
       };

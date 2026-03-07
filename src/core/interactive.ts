@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 import { confirm, intro, isCancel, multiselect, note, outro, select, text } from '@clack/prompts';
 import pc from 'picocolors';
 import { CONFIG_PATH, DEFAULT_CONFIG, mergeConfig, readConfigFile, resolveConfigPath } from './config.js';
-import { dynamicConfigPresets } from './presets.js';
 import { discoverConfigProfiles, formatConfigPathForDisplay, getInstalledSchedulerInfo } from './scheduler.js';
 import { discoverStaticPacks } from './staticPacks.js';
 import type { CliOverrides, Config, FeedConfig } from './types.js';
@@ -181,6 +180,10 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 	const staticPacks = discoverStaticPacks();
 	const currentConfigDisplay = formatConfigPathForDisplay(CONFIG_PATH);
 	const preferredConfigDisplay = options.preferredConfigPath ? formatConfigPathForDisplay(options.preferredConfigPath) : currentConfigDisplay;
+	const defaultConfigExists = existsSync(CONFIG_PATH);
+	const installedConfigDisplay = installedScheduler?.configPath && existsSync(resolveConfigPath(installedScheduler.configPath))
+		? formatConfigPathForDisplay(installedScheduler.configPath)
+		: undefined;
 
 	if (installedScheduler?.installed) {
 		note(
@@ -297,13 +300,13 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 	const configOptions = Array.from(
 		new Set([
 			...availableConfigs,
-			formatConfigPathForDisplay(CONFIG_PATH),
-			...(installedScheduler?.configPath ? [formatConfigPathForDisplay(installedScheduler.configPath)] : []),
+			...(defaultConfigExists ? [currentConfigDisplay] : []),
+			...(installedConfigDisplay ? [installedConfigDisplay] : []),
 		]),
 	).map(configPath => ({
 		value: configPath,
 		label: configPath,
-		hint: configPath === formatConfigPathForDisplay(installedScheduler?.configPath ?? '') ? 'currently installed' : undefined,
+		hint: configPath === installedConfigDisplay ? 'currently installed' : undefined,
 	}));
 
 	const selectedConfigOption = await select({
@@ -331,34 +334,6 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		? mergeConfig(DEFAULT_CONFIG, readConfigFile(resolveConfigPath(selectedConfigPath)), {})
 		: DEFAULT_CONFIG;
 	let startWithNoSourcesSelected = isNewConfig;
-
-	if (isNewConfig) {
-		const selectedPreset = await select({
-			message: 'How do you want to start this new config?',
-			initialValue: '__blank__',
-			options: [
-				{ value: '__blank__', label: 'Blank config', hint: 'Start from the default profile' },
-				...dynamicConfigPresets.map(preset => ({
-					value: preset.id,
-					label: preset.label,
-					hint: preset.hint,
-				})),
-			],
-		});
-
-		if (isCancel(selectedPreset)) {
-			return cancelFlow('Interactive run cancelled. No settings were changed.');
-		}
-
-		if (selectedPreset !== '__blank__') {
-			const preset = dynamicConfigPresets.find(item => item.id === selectedPreset);
-			if (preset) {
-				selectedConfig = mergeConfig(DEFAULT_CONFIG, preset.config as Partial<Config>, {});
-				startWithNoSourcesSelected = false;
-				note(`${pc.cyan(preset.label)} — ${preset.hint}`, 'Preset');
-			}
-		}
-	}
 
 	const selectedSources = await multiselect({
 		message: 'Which sources do you want to use?',

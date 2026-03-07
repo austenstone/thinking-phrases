@@ -35,21 +35,25 @@
   },
   "hackerNews": {
     "enabled": true,
-    "feed": "best",
-    "maxItems": 5,
-    "minScore": 120
+    "feed": "top",
+    "maxItems": 30,
+    "minScore": 50
   },
   "earthquakes": {
-    "enabled": true,
-    "minMagnitude": 4.5,
+    "enabled": false,
+    "zipCode": "",
+    "minMagnitude": 4,
     "windowHours": 24,
-    "limit": 8,
-    "orderBy": "magnitude"
+    "limit": 10,
+    "radiusKm": 500,
+    "orderBy": "time"
   },
   "weatherAlerts": {
-    "enabled": true,
-    "minimumSeverity": "severe",
-    "limit": 8
+    "enabled": false,
+    "zipCode": "",
+    "area": "",
+    "minimumSeverity": "moderate",
+    "limit": 10
   },
   "customJson": {
     "enabled": false,
@@ -63,5 +67,17 @@
     "dateField": "publishedAt",
     "idField": "id",
     "maxItems": 10
+  },
+  "githubActivity": {
+    "enabled": false,
+    "mode": "repo-commits",
+    "repo": "microsoft/vscode",
+    "org": "github",
+    "branch": "",
+    "feedKind": "timeline",
+    "feedUrl": "",
+    "maxItems": 10,
+    "sinceHours": 24,
+    "tokenEnvVar": "GITHUB_TOKEN"
   }
 }

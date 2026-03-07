@@ -1,6 +1,6 @@
 {
   "name": "thinking-phrases",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Live thinking phrases for VS Code — RSS, stocks, GitHub commits, earthquakes, weather, Hacker News, and more",
   "type": "module",
   "bin": {
