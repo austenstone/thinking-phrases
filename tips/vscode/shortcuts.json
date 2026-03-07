@@ -1,0 +1,127 @@
+[
+  {
+    "mac": "⌘+D selects the next occurrence of a word. Keep pressing for more!",
+    "windows": "Ctrl+D selects the next occurrence of a word. Keep pressing for more!",
+    "linux": "Ctrl+D selects the next occurrence of a word. Keep pressing for more!"
+  },
+  {
+    "mac": "⇧+⌘+L selects ALL occurrences of the current selection at once.",
+    "windows": "Ctrl+Shift+L selects ALL occurrences of the current selection at once.",
+    "linux": "Ctrl+Shift+L selects ALL occurrences of the current selection at once."
+  },
+  {
+    "mac": "⌥+↑/↓ moves the current line up or down. No cut-paste needed.",
+    "windows": "Alt+↑/↓ moves the current line up or down. No cut-paste needed.",
+    "linux": "Alt+↑/↓ moves the current line up or down. No cut-paste needed."
+  },
+  {
+    "mac": "⇧+⌥+↑/↓ duplicates the current line up or down.",
+    "windows": "Shift+Alt+↑/↓ duplicates the current line up or down.",
+    "linux": "Shift+Alt+↑/↓ duplicates the current line up or down."
+  },
+  {
+    "mac": "⇧+⌘+K deletes the entire current line. No need to select it first.",
+    "windows": "Ctrl+Shift+K deletes the entire current line. No need to select it first.",
+    "linux": "Ctrl+Shift+K deletes the entire current line. No need to select it first."
+  },
+  {
+    "mac": "⌘+P opens Quick Open. Start typing a filename to jump to it instantly.",
+    "windows": "Ctrl+P opens Quick Open. Start typing a filename to jump to it instantly.",
+    "linux": "Ctrl+P opens Quick Open. Start typing a filename to jump to it instantly."
+  },
+  {
+    "mac": "⇧+⌘+P opens the Command Palette — your gateway to every VS Code command.",
+    "windows": "Ctrl+Shift+P opens the Command Palette — your gateway to every VS Code command.",
+    "linux": "Ctrl+Shift+P opens the Command Palette — your gateway to every VS Code command."
+  },
+  {
+    "mac": "⌘+/ toggles line comments on the current line or selection.",
+    "windows": "Ctrl+/ toggles line comments on the current line or selection.",
+    "linux": "Ctrl+/ toggles line comments on the current line or selection."
+  },
+  {
+    "mac": "⌘+B toggles the sidebar. More screen real estate, instantly.",
+    "windows": "Ctrl+B toggles the sidebar. More screen real estate, instantly.",
+    "linux": "Ctrl+B toggles the sidebar. More screen real estate, instantly."
+  },
+  {
+    "mac": "⌘+\\ splits the editor side by side. Compare files like a pro.",
+    "windows": "Ctrl+\\ splits the editor side by side. Compare files like a pro.",
+    "linux": "Ctrl+\\ splits the editor side by side. Compare files like a pro."
+  },
+  {
+    "mac": "⇧+⌘+O goes to any symbol in the current file. Add : to group by kind.",
+    "windows": "Ctrl+Shift+O goes to any symbol in the current file. Add : to group by kind.",
+    "linux": "Ctrl+Shift+O goes to any symbol in the current file. Add : to group by kind."
+  },
+  {
+    "mac": "⌃+G jumps to a specific line number. Fast and precise.",
+    "windows": "Ctrl+G jumps to a specific line number. Fast and precise.",
+    "linux": "Ctrl+G jumps to a specific line number. Fast and precise."
+  },
+  {
+    "mac": "⇧+⌘+\\ jumps to the matching bracket. Never get lost in nested code.",
+    "windows": "Ctrl+Shift+\\ jumps to the matching bracket. Never get lost in nested code.",
+    "linux": "Ctrl+Shift+\\ jumps to the matching bracket. Never get lost in nested code."
+  },
+  {
+    "mac": "F2 renames a symbol across all files. Way smarter than find-and-replace.",
+    "windows": "F2 renames a symbol across all files. Way smarter than find-and-replace.",
+    "linux": "F2 renames a symbol across all files. Way smarter than find-and-replace."
+  },
+  {
+    "mac": "⌘+. shows Quick Fixes and refactorings for the code under your cursor.",
+    "windows": "Ctrl+. shows Quick Fixes and refactorings for the code under your cursor.",
+    "linux": "Ctrl+. shows Quick Fixes and refactorings for the code under your cursor."
+  },
+  {
+    "mac": "⇧+⌥+F formats the entire document. Clean code in one keystroke.",
+    "windows": "Shift+Alt+F formats the entire document. Clean code in one keystroke.",
+    "linux": "Shift+Alt+F formats the entire document. Clean code in one keystroke."
+  },
+  {
+    "mac": "⌥+Z toggles word wrap. See long lines without horizontal scrolling.",
+    "windows": "Alt+Z toggles word wrap. See long lines without horizontal scrolling.",
+    "linux": "Alt+Z toggles word wrap. See long lines without horizontal scrolling."
+  },
+  {
+    "mac": "⌘+J toggles the bottom panel — terminal, problems, output, all of it.",
+    "windows": "Ctrl+J toggles the bottom panel — terminal, problems, output, all of it.",
+    "linux": "Ctrl+J toggles the bottom panel — terminal, problems, output, all of it."
+  },
+  {
+    "mac": "Hold ⌥ and click to place cursors anywhere. Multi-cursor editing is a superpower.",
+    "windows": "Hold Alt and click to place cursors anywhere. Multi-cursor editing is a superpower.",
+    "linux": "Hold Alt and click to place cursors anywhere. Multi-cursor editing is a superpower."
+  },
+  {
+    "mac": "⌘+L selects the entire current line. Press again to grab the next line too.",
+    "windows": "Ctrl+L selects the entire current line. Press again to grab the next line too.",
+    "linux": "Ctrl+L selects the entire current line. Press again to grab the next line too."
+  },
+  {
+    "mac": "⌘+K ⌘+0 folds all code. ⌘+K ⌘+J unfolds everything. Manage code visibility fast.",
+    "windows": "Ctrl+K Ctrl+0 folds all code. Ctrl+K Ctrl+J unfolds everything.",
+    "linux": "Ctrl+K Ctrl+0 folds all code. Ctrl+K Ctrl+J unfolds everything."
+  },
+  {
+    "mac": "⌃+- navigates back to your previous location. Like browser back, but for code.",
+    "windows": "Alt+← navigates back to your previous location. Like browser back, but for code.",
+    "linux": "Alt+← navigates back to your previous location. Like browser back, but for code."
+  },
+  {
+    "mac": "⇧+⌥+I adds a cursor at the end of every selected line. Bulk editing made easy.",
+    "windows": "Shift+Alt+I adds a cursor at the end of every selected line. Bulk editing made easy.",
+    "linux": "Shift+Alt+I adds a cursor at the end of every selected line. Bulk editing made easy."
+  },
+  {
+    "mac": "⌘+U undoes the last cursor operation. Went too far with ⌘+D? Step back.",
+    "windows": "Ctrl+U undoes the last cursor operation. Went too far with Ctrl+D? Step back.",
+    "linux": "Ctrl+U undoes the last cursor operation. Went too far with Ctrl+D? Step back."
+  },
+  {
+    "mac": "⌘+K ⌘+X trims trailing whitespace from the file. Keep your diffs clean.",
+    "windows": "Ctrl+K Ctrl+X trims trailing whitespace from the file. Keep your diffs clean.",
+    "linux": "Ctrl+K Ctrl+X trims trailing whitespace from the file. Keep your diffs clean."
+  }
+]

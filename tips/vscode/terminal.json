@@ -1,0 +1,37 @@
+[
+  {
+    "mac": "⌃+` toggles the integrated terminal. Your shell is always one keystroke away.",
+    "windows": "Ctrl+` toggles the integrated terminal. Your shell is always one keystroke away.",
+    "linux": "Ctrl+` toggles the integrated terminal. Your shell is always one keystroke away."
+  },
+  {
+    "mac": "⌘+\\ splits the terminal into side-by-side panes when it's focused.",
+    "windows": "Ctrl+Shift+5 splits the terminal into side-by-side panes when it's focused.",
+    "linux": "Ctrl+Shift+5 splits the terminal into side-by-side panes when it's focused."
+  },
+  {
+    "mac": "⌃+⇧+` creates a new terminal instance. Run multiple shells in parallel.",
+    "windows": "Ctrl+Shift+` creates a new terminal instance. Run multiple shells in parallel.",
+    "linux": "Ctrl+Shift+` creates a new terminal instance. Run multiple shells in parallel."
+  },
+  {
+    "mac": "⌘+K clears the terminal when focused. A fresh start for your shell.",
+    "windows": "Ctrl+K clears the terminal when focused. A fresh start for your shell.",
+    "linux": "Ctrl+K clears the terminal when focused. A fresh start for your shell."
+  },
+  {
+    "mac": "The terminal has built-in autocomplete. Press ⌃+Space to trigger suggestions.",
+    "windows": "The terminal has built-in autocomplete. Press Ctrl+Space to trigger suggestions.",
+    "linux": "The terminal has built-in autocomplete. Press Ctrl+Space to trigger suggestions."
+  },
+  {
+    "mac": "⇧+⌘+C opens an external terminal at your workspace root.",
+    "windows": "Ctrl+Shift+C opens an external terminal at your workspace root.",
+    "linux": "Ctrl+Shift+C opens an external terminal at your workspace root."
+  },
+  {
+    "mac": "Type 'code .' in any terminal to open that folder in VS Code.",
+    "windows": "Type 'code .' in any terminal to open that folder in VS Code.",
+    "linux": "Type 'code .' in any terminal to open that folder in VS Code."
+  }
+]

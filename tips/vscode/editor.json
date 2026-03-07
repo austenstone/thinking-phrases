@@ -1,0 +1,52 @@
+[
+  {
+    "mac": "⌘+K Z enters Zen mode — full screen, no distractions. Press Escape twice to exit.",
+    "windows": "Ctrl+K Z enters Zen mode — full screen, no distractions. Press Escape twice to exit.",
+    "linux": "Ctrl+K Z enters Zen mode — full screen, no distractions. Press Escape twice to exit."
+  },
+  {
+    "mac": "Sticky Scroll pins the current scope at the top of the editor. Toggle it in the View menu.",
+    "windows": "Sticky Scroll pins the current scope at the top of the editor. Toggle it in the View menu.",
+    "linux": "Sticky Scroll pins the current scope at the top of the editor. Toggle it in the View menu."
+  },
+  {
+    "mac": "⇧+⌘+; focuses the breadcrumbs bar. Navigate your file structure without the mouse.",
+    "windows": "Ctrl+Shift+; focuses the breadcrumbs bar. Navigate your file structure without the mouse.",
+    "linux": "Ctrl+Shift+; focuses the breadcrumbs bar. Navigate your file structure without the mouse."
+  },
+  {
+    "mac": "Emmet works out of the box. Type div.container>ul>li*3 and press Tab.",
+    "windows": "Emmet works out of the box. Type div.container>ul>li*3 and press Tab.",
+    "linux": "Emmet works out of the box. Type div.container>ul>li*3 and press Tab."
+  },
+  {
+    "mac": "⌘+, opens Settings. There are thousands to customize — use search to find them.",
+    "windows": "Ctrl+, opens Settings. There are thousands to customize — use search to find them.",
+    "linux": "Ctrl+, opens Settings. There are thousands to customize — use search to find them."
+  },
+  {
+    "mac": "⌘+K ⌘+T opens the theme picker. Try a new color theme in seconds.",
+    "windows": "Ctrl+K Ctrl+T opens the theme picker. Try a new color theme in seconds.",
+    "linux": "Ctrl+K Ctrl+T opens the theme picker. Try a new color theme in seconds."
+  },
+  {
+    "mac": "Settings Sync keeps your config consistent across machines. Enable it from the accounts menu.",
+    "windows": "Settings Sync keeps your config consistent across machines. Enable it from the accounts menu.",
+    "linux": "Settings Sync keeps your config consistent across machines. Enable it from the accounts menu."
+  },
+  {
+    "mac": "⌘+K V opens a side-by-side Markdown preview. Edit and preview at the same time.",
+    "windows": "Ctrl+K V opens a side-by-side Markdown preview. Edit and preview at the same time.",
+    "linux": "Ctrl+K V opens a side-by-side Markdown preview. Edit and preview at the same time."
+  },
+  {
+    "mac": "Drag an editor tab out of the window to open it in a separate floating window.",
+    "windows": "Drag an editor tab out of the window to open it in a separate floating window.",
+    "linux": "Drag an editor tab out of the window to open it in a separate floating window."
+  },
+  {
+    "mac": "⌘+K ⌘+S opens the Keyboard Shortcuts editor. Remap anything to your liking.",
+    "windows": "Ctrl+K Ctrl+S opens the Keyboard Shortcuts editor. Remap anything to your liking.",
+    "linux": "Ctrl+K Ctrl+S opens the Keyboard Shortcuts editor. Remap anything to your liking."
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "mac": "⌘+I starts inline chat — ask Copilot to edit code right where your cursor is.",
+    "windows": "Ctrl+I starts inline chat — ask Copilot to edit code right where your cursor is.",
+    "linux": "Ctrl+I starts inline chat — ask Copilot to edit code right where your cursor is."
+  },
+  {
+    "mac": "⌃+⌘+I opens the Copilot chat panel. Your AI pair programmer awaits.",
+    "windows": "Ctrl+Alt+I opens the Copilot chat panel. Your AI pair programmer awaits.",
+    "linux": "Ctrl+Alt+I opens the Copilot chat panel. Your AI pair programmer awaits."
+  },
+  {
+    "mac": "Tab accepts a Copilot suggestion. ⌥+] and ⌥+[ cycle through alternatives.",
+    "windows": "Tab accepts a Copilot suggestion. Alt+] and Alt+[ cycle through alternatives.",
+    "linux": "Tab accepts a Copilot suggestion. Alt+] and Alt+[ cycle through alternatives."
+  },
+  {
+    "mac": "Use #file in chat to reference a specific file as context for your question.",
+    "windows": "Use #file in chat to reference a specific file as context for your question.",
+    "linux": "Use #file in chat to reference a specific file as context for your question."
+  },
+  {
+    "mac": "Use #selection in chat to include your currently selected code as context.",
+    "windows": "Use #selection in chat to include your currently selected code as context.",
+    "linux": "Use #selection in chat to include your currently selected code as context."
+  },
+  {
+    "mac": "Agent mode can run terminal commands and edit multiple files autonomously.",
+    "windows": "Agent mode can run terminal commands and edit multiple files autonomously.",
+    "linux": "Agent mode can run terminal commands and edit multiple files autonomously."
+  },
+  {
+    "mac": "Type /compact in chat to summarize the conversation and free up context space.",
+    "windows": "Type /compact in chat to summarize the conversation and free up context space.",
+    "linux": "Type /compact in chat to summarize the conversation and free up context space."
+  },
+  {
+    "mac": "Type /fork in chat to branch your conversation and explore a new direction.",
+    "windows": "Type /fork in chat to branch your conversation and explore a new direction.",
+    "linux": "Type /fork in chat to branch your conversation and explore a new direction."
+  },
+  {
+    "mac": "Create .github/copilot-instructions.md to give Copilot project-specific guidance.",
+    "windows": "Create .github/copilot-instructions.md to give Copilot project-specific guidance.",
+    "linux": "Create .github/copilot-instructions.md to give Copilot project-specific guidance."
+  },
+  {
+    "mac": "Create .prompt.md files to build reusable prompts you can invoke from chat.",
+    "windows": "Create .prompt.md files to build reusable prompts you can invoke from chat.",
+    "linux": "Create .prompt.md files to build reusable prompts you can invoke from chat."
+  },
+  {
+    "mac": "Next Edit Suggestions (NES) predicts your next edit. Look for ghost text, then Tab.",
+    "windows": "Next Edit Suggestions (NES) predicts your next edit. Look for ghost text, then Tab.",
+    "linux": "Next Edit Suggestions (NES) predicts your next edit. Look for ghost text, then Tab."
+  },
+  {
+    "mac": "Send a steering message while the agent works to redirect it mid-task.",
+    "windows": "Send a steering message while the agent works to redirect it mid-task.",
+    "linux": "Send a steering message while the agent works to redirect it mid-task."
+  },
+  {
+    "mac": "⌘+Enter in chat submits with codebase context. Better answers for workspace questions.",
+    "windows": "Ctrl+Enter in chat submits with codebase context. Better answers for workspace questions.",
+    "linux": "Ctrl+Enter in chat submits with codebase context. Better answers for workspace questions."
+  },
+  {
+    "mac": "Create custom agents with .agent.md files to define specialized AI personas.",
+    "windows": "Create custom agents with .agent.md files to define specialized AI personas.",
+    "linux": "Create custom agents with .agent.md files to define specialized AI personas."
+  },
+  {
+    "mac": "Queue messages with ⌥+Enter while the agent is working. It handles them in order.",
+    "windows": "Queue messages with Alt+Enter while the agent is working. It handles them in order.",
+    "linux": "Queue messages with Alt+Enter while the agent is working. It handles them in order."
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "name": "vscode-copilot-tips",
+  "version": "1.0.0",
+  "description": "VS Code tips and tricks as custom thinking phrases — like loading screen tips in video games",
+  "scripts": {
+    "build": "tsx scripts/build.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "license": "MIT"
+}

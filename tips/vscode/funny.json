@@ -1,0 +1,42 @@
+[
+  {
+    "mac": "Remember to take all things in moderation — including VS Code extensions.",
+    "windows": "Remember to take all things in moderation — including VS Code extensions.",
+    "linux": "Remember to take all things in moderation — including VS Code extensions."
+  },
+  {
+    "mac": "An unused keyboard shortcut is a wasted keyboard shortcut.",
+    "windows": "An unused keyboard shortcut is a wasted keyboard shortcut.",
+    "linux": "An unused keyboard shortcut is a wasted keyboard shortcut."
+  },
+  {
+    "mac": "There is no cow level, but there is Zen mode.",
+    "windows": "There is no cow level, but there is Zen mode.",
+    "linux": "There is no cow level, but there is Zen mode."
+  },
+  {
+    "mac": "A well-placed breakpoint is worth a thousand console.logs.",
+    "windows": "A well-placed breakpoint is worth a thousand console.logs.",
+    "linux": "A well-placed breakpoint is worth a thousand console.logs."
+  },
+  {
+    "mac": "The Command Palette has over 1000 commands. You've probably used about 12.",
+    "windows": "The Command Palette has over 1000 commands. You've probably used about 12.",
+    "linux": "The Command Palette has over 1000 commands. You've probably used about 12."
+  },
+  {
+    "mac": "Don't forget to drink water. Your code can wait. Probably.",
+    "windows": "Don't forget to drink water. Your code can wait. Probably.",
+    "linux": "Don't forget to drink water. Your code can wait. Probably."
+  },
+  {
+    "mac": "50% of coding used to be Googling. The other 50% is now asking Copilot.",
+    "windows": "50% of coding used to be Googling. The other 50% is now asking Copilot.",
+    "linux": "50% of coding used to be Googling. The other 50% is now asking Copilot."
+  },
+  {
+    "mac": "Your extensions are loading. Have you considered which ones you actually use?",
+    "windows": "Your extensions are loading. Have you considered which ones you actually use?",
+    "linux": "Your extensions are loading. Have you considered which ones you actually use?"
+  }
+]

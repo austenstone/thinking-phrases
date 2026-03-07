@@ -1,0 +1,42 @@
+[
+  {
+    "mac": "⌃+⇧+G opens Source Control. See all your changes at a glance.",
+    "windows": "Ctrl+Shift+G opens Source Control. See all your changes at a glance.",
+    "linux": "Ctrl+Shift+G opens Source Control. See all your changes at a glance."
+  },
+  {
+    "mac": "Git blame shows inline who last changed each line. Hover for the full commit.",
+    "windows": "Git blame shows inline who last changed each line. Hover for the full commit.",
+    "linux": "Git blame shows inline who last changed each line. Hover for the full commit."
+  },
+  {
+    "mac": "You can stage just part of a file. Select lines and use 'Stage Selected Ranges'.",
+    "windows": "You can stage just part of a file. Select lines and use 'Stage Selected Ranges'.",
+    "linux": "You can stage just part of a file. Select lines and use 'Stage Selected Ranges'."
+  },
+  {
+    "mac": "Gutter indicators show added, changed, and deleted lines right in the editor margin.",
+    "windows": "Gutter indicators show added, changed, and deleted lines right in the editor margin.",
+    "linux": "Gutter indicators show added, changed, and deleted lines right in the editor margin."
+  },
+  {
+    "mac": "⌥+F3 jumps to the next inline change. ⇧+⌥+F3 jumps to the previous one.",
+    "windows": "Alt+F3 jumps to the next inline change. Shift+Alt+F3 jumps to the previous one.",
+    "linux": "Alt+F3 jumps to the next inline change. Shift+Alt+F3 jumps to the previous one."
+  },
+  {
+    "mac": "The Timeline view (bottom of Explorer) shows local file history and git commits.",
+    "windows": "The Timeline view (bottom of Explorer) shows local file history and git commits.",
+    "linux": "The Timeline view (bottom of Explorer) shows local file history and git commits."
+  },
+  {
+    "mac": "⌘+Enter in the Source Control input box commits your staged changes.",
+    "windows": "Ctrl+Enter in the Source Control input box commits your staged changes.",
+    "linux": "Ctrl+Enter in the Source Control input box commits your staged changes."
+  },
+  {
+    "mac": "Copilot can generate commit messages. Look for the sparkle ✨ icon in Source Control.",
+    "windows": "Copilot can generate commit messages. Look for the sparkle ✨ icon in Source Control.",
+    "linux": "Copilot can generate commit messages. Look for the sparkle ✨ icon in Source Control."
+  }
+]

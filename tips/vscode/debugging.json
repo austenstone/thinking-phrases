@@ -1,0 +1,37 @@
+[
+  {
+    "mac": "F5 starts debugging. ⇧+F5 stops it. ⇧+⌘+F5 restarts. The holy trinity.",
+    "windows": "F5 starts debugging. Shift+F5 stops it. Ctrl+Shift+F5 restarts. The holy trinity.",
+    "linux": "F5 starts debugging. Shift+F5 stops it. Ctrl+Shift+F5 restarts. The holy trinity."
+  },
+  {
+    "mac": "F9 toggles a breakpoint on the current line. You can also click the gutter.",
+    "windows": "F9 toggles a breakpoint on the current line. You can also click the gutter.",
+    "linux": "F9 toggles a breakpoint on the current line. You can also click the gutter."
+  },
+  {
+    "mac": "F10 steps over. F11 steps into. ⇧+F11 steps out. Master the debug dance.",
+    "windows": "F10 steps over. F11 steps into. Shift+F11 steps out. Master the debug dance.",
+    "linux": "F10 steps over. F11 steps into. Shift+F11 steps out. Master the debug dance."
+  },
+  {
+    "mac": "Logpoints log to the console without pausing execution. Right-click the gutter to add one.",
+    "windows": "Logpoints log to the console without pausing execution. Right-click the gutter to add one.",
+    "linux": "Logpoints log to the console without pausing execution. Right-click the gutter to add one."
+  },
+  {
+    "mac": "Conditional breakpoints only pause when an expression is true. Right-click a breakpoint to set one.",
+    "windows": "Conditional breakpoints only pause when an expression is true. Right-click a breakpoint to set one.",
+    "linux": "Conditional breakpoints only pause when an expression is true. Right-click a breakpoint to set one."
+  },
+  {
+    "mac": "Hover over any variable while debugging to inspect its value inline.",
+    "windows": "Hover over any variable while debugging to inspect its value inline.",
+    "linux": "Hover over any variable while debugging to inspect its value inline."
+  },
+  {
+    "mac": "⇧+⌘+D opens Run and Debug. Set up launch.json for custom debug configurations.",
+    "windows": "Ctrl+Shift+D opens Run and Debug. Set up launch.json for custom debug configurations.",
+    "linux": "Ctrl+Shift+D opens Run and Debug. Set up launch.json for custom debug configurations."
+  }
+]
