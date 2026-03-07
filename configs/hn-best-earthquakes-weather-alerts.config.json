@@ -1,0 +1,67 @@
+{
+  "limit": 25,
+  "mode": "replace",
+  "target": "auto",
+  "verbose": false,
+  "debug": false,
+  "feeds": [],
+  "phraseFormatting": {
+    "includeSource": true,
+    "includeTime": true,
+    "maxLength": 140
+  },
+  "githubModels": {
+    "enabled": true,
+    "model": "openai/gpt-4.1",
+    "tokenEnvVar": "GITHUB_MODELS_TOKEN",
+    "maxInputItems": 10,
+    "maxTokens": 300,
+    "maxPhrasesPerArticle": 2,
+    "temperature": 0.2,
+    "fetchArticleContent": true,
+    "maxArticleContentLength": 6000
+  },
+  "stockQuotes": {
+    "enabled": false,
+    "symbols": [
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "GOOGL",
+      "AMD"
+    ],
+    "includeMarketState": true
+  },
+  "hackerNews": {
+    "enabled": true,
+    "feed": "best",
+    "maxItems": 5,
+    "minScore": 120
+  },
+  "earthquakes": {
+    "enabled": true,
+    "minMagnitude": 4.5,
+    "windowHours": 24,
+    "limit": 8,
+    "orderBy": "magnitude"
+  },
+  "weatherAlerts": {
+    "enabled": true,
+    "minimumSeverity": "severe",
+    "limit": 8
+  },
+  "customJson": {
+    "enabled": false,
+    "url": "",
+    "itemsPath": "",
+    "titleField": "title",
+    "contentField": "summary",
+    "linkField": "url",
+    "sourceField": "",
+    "sourceLabel": "",
+    "dateField": "publishedAt",
+    "idField": "id",
+    "maxItems": 10
+  }
+}

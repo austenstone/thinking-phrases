@@ -1,0 +1,40 @@
+{
+  "limit": 10,
+  "mode": "replace",
+  "target": "auto",
+  "verbose": false,
+  "debug": false,
+  "feeds": [
+    {
+      "url": "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en"
+    }
+  ],
+  "phraseFormatting": {
+    "includeSource": true,
+    "includeTime": true,
+    "maxLength": 140
+  },
+  "githubModels": {
+    "enabled": true,
+    "model": "openai/gpt-4.1",
+    "tokenEnvVar": "GITHUB_MODELS_TOKEN",
+    "maxInputItems": 10,
+    "maxTokens": 300,
+    "maxPhrasesPerArticle": 2,
+    "temperature": 0.2,
+    "fetchArticleContent": true,
+    "maxArticleContentLength": 6000
+  },
+  "stockQuotes": {
+    "enabled": false,
+    "symbols": [
+      "MSFT",
+      "NVDA",
+      "TSLA",
+      "AMZN",
+      "GOOGL",
+      "AMD"
+    ],
+    "includeMarketState": true
+  }
+}

@@ -4,9 +4,25 @@
   "description": "Curated thinking phrase packs for VS Code and beyond — like loading screen tips for AI",
   "type": "module",
   "scripts": {
-    "build": "tsx scripts/build.ts"
+    "build": "tsx scripts/build.ts",
+    "rss:dry-run": "tsx scripts/update-rss-settings.ts --dry-run",
+    "rss:interactive": "tsx scripts/update-rss-settings.ts --interactive",
+    "rss:remove": "tsx scripts/update-rss-settings.ts --uninstall",
+    "rss:run": "tsx scripts/update-rss-settings.ts",
+    "rss:install": "zsh scripts/install-rss-updater.zsh",
+    "rss:uninstall": "zsh scripts/uninstall-rss-updater.zsh"
+  },
+  "dependencies": {
+    "@azure-rest/ai-inference": "^1.0.0-beta.6",
+    "@azure/core-auth": "^1.10.1",
+    "@clack/prompts": "^1.1.0",
+    "fast-xml-parser": "^5.4.2",
+    "jsonc-parser": "^3.3.1",
+    "picocolors": "^1.1.1",
+    "yahoo-finance2": "^3.13.2"
   },
   "devDependencies": {
+    "@types/json-schema": "^7.0.15",
     "@types/node": "^25.3.5",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"

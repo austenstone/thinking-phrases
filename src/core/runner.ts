@@ -1,0 +1,371 @@
+import { resolve } from 'node:path';
+import process from 'node:process';
+import { execFileSync } from 'node:child_process';
+import { outro, spinner } from '@clack/prompts';
+import pc from 'picocolors';
+import { DEFAULT_CONFIG, mergeConfig, parseArgs, readConfigFile, resolveConfigPath, validateConfig, writeConfigFile } from './config.js';
+import { buildModelArticlePhrases } from './githubModels.js';
+import {
+  promptForConfigName,
+  promptForDynamicSchedulerAfterDryRun,
+  promptForInteractiveOverrides,
+  promptForPostDryRunAction,
+  promptForStaticSchedulerAfterDryRun,
+} from './interactive.js';
+import { DEFAULT_SCHEDULER_INTERVAL_SECONDS, formatConfigPathForDisplay, getInstalledSchedulerInfo } from './scheduler.js';
+import { dynamicSources } from './sourceCatalog.js';
+import { getStaticPackByPath } from './staticPacks.js';
+import type { ArticleItem, Config } from './types.js';
+import { dedupePhrases, loadDotEnv, logInfo, resolveSettingsPath, truncate } from './utils.js';
+import { buildStockPhrase } from '../sources/stocks.js';
+import { removeVsCodeThinkingPhrases, writeVsCodeSettings } from '../sinks/vscodeSettings.js';
+
+function buildBasicArticlePhrase(article: ArticleItem, config: Config): string | null {
+  if (!article.title?.trim()) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  if (config.phraseFormatting.includeSource && article.source?.trim()) {
+    parts.push(article.source.trim());
+  }
+
+  parts.push(article.title.trim());
+
+  if (config.phraseFormatting.includeTime && article.time?.trim()) {
+    parts.push(article.time.trim());
+  }
+
+  return truncate(parts.join(' — '), config.phraseFormatting.maxLength);
+}
+
+function buildBasicArticlePhrases(articles: ArticleItem[], config: Config): string[] {
+  return dedupePhrases(
+    articles
+      .map(article => buildBasicArticlePhrase(article, config))
+      .filter((phrase): phrase is string => Boolean(phrase)),
+  );
+}
+
+function installMacScheduler(intervalSeconds: number, configPath?: string): void {
+  const installerPath = resolve(process.cwd(), 'scripts/install-rss-updater.zsh');
+  const args = [installerPath, String(intervalSeconds)];
+  if (configPath) {
+    args.push(configPath);
+  }
+
+  execFileSync('zsh', args, { stdio: 'inherit' });
+}
+
+function uninstallMacScheduler(): void {
+  const uninstallPath = resolve(process.cwd(), 'scripts/uninstall-rss-updater.zsh');
+  execFileSync('zsh', [uninstallPath], { stdio: 'inherit' });
+}
+
+function syncGitHubLookbackToScheduler(config: Config, intervalSeconds: number): Config {
+  if (!config.githubActivity.enabled) {
+    return config;
+  }
+
+	// Use the scheduler cadence as a hint, not a razor-thin filter.
+	// A 5 minute schedule should not mean we only look back 5 minutes,
+	// because bursty sources can easily produce zero items in that window.
+  const derivedLookbackHours = Math.max(intervalSeconds / 3600, 1);
+
+  return {
+    ...config,
+    githubActivity: {
+      ...config.githubActivity,
+      sinceHours: derivedLookbackHours,
+    },
+  };
+}
+
+export async function runDynamicPhrases(): Promise<void> {
+  loadDotEnv(resolve(process.cwd(), '.env'));
+
+  const args = parseArgs(process.argv.slice(2));
+  const isInteractive = Boolean(args.interactive);
+  let uninstall = Boolean(args.uninstall);
+  let createNewConfig = Boolean(args.createNewConfig);
+  let dryRun = Boolean(args.dryRun);
+  let installScheduler = Boolean(args.installScheduler);
+  let uninstallScheduler = Boolean(args.uninstallScheduler);
+  let schedulerIntervalSeconds = args.schedulerIntervalSeconds ?? DEFAULT_SCHEDULER_INTERVAL_SECONDS;
+  let schedulerConfigPath = args.schedulerConfigPath;
+  let staticPackPath = args.staticPackPath;
+  let configPath: string | undefined = resolveConfigPath(args.configPath);
+  let fileConfig = configPath ? readConfigFile(configPath) : {};
+  let config = mergeConfig(DEFAULT_CONFIG, fileConfig, args);
+  let interactivePass = 0;
+  const interactiveSpinner = isInteractive ? spinner({ indicator: 'timer' }) : null;
+  let interactiveSpinnerActive = false;
+
+  const startInteractiveProgress = (message: string): void => {
+    if (!interactiveSpinner) {
+      return;
+    }
+
+    if (interactiveSpinnerActive) {
+      interactiveSpinner.message(message);
+      return;
+    }
+
+    interactiveSpinner.start(message);
+    interactiveSpinnerActive = true;
+  };
+
+  const stopInteractiveProgress = (message: string): void => {
+    if (!interactiveSpinner || !interactiveSpinnerActive) {
+      return;
+    }
+
+    interactiveSpinner.stop(message);
+    interactiveSpinnerActive = false;
+  };
+
+  const failInteractiveProgress = (message: string): void => {
+    if (!interactiveSpinner || !interactiveSpinnerActive) {
+      return;
+    }
+
+    interactiveSpinner.error(message);
+    interactiveSpinnerActive = false;
+  };
+
+  while (true) {
+    if (isInteractive) {
+      const interactiveOverrides = await promptForInteractiveOverrides(config, {
+        showIntro: interactivePass === 0,
+        preferredConfigPath: createNewConfig ? undefined : configPath,
+        preferredNewConfig: createNewConfig,
+      });
+
+      if (!interactiveOverrides) {
+        return;
+      }
+
+      interactivePass += 1;
+      uninstall = Boolean(interactiveOverrides.uninstall);
+      createNewConfig = Boolean(interactiveOverrides.createNewConfig);
+      dryRun = Boolean(interactiveOverrides.dryRun);
+      installScheduler = Boolean(interactiveOverrides.installScheduler);
+      uninstallScheduler = Boolean(interactiveOverrides.uninstallScheduler);
+      schedulerIntervalSeconds = interactiveOverrides.schedulerIntervalSeconds ?? DEFAULT_SCHEDULER_INTERVAL_SECONDS;
+      schedulerConfigPath = interactiveOverrides.schedulerConfigPath;
+      staticPackPath = interactiveOverrides.staticPackPath;
+      configPath = createNewConfig ? undefined : resolveConfigPath(interactiveOverrides.configPath ?? args.configPath);
+      fileConfig = configPath ? readConfigFile(configPath) : {};
+      config = mergeConfig(DEFAULT_CONFIG, fileConfig, interactiveOverrides);
+    }
+
+    const settingsPath = resolveSettingsPath(config.target, config.settingsPath);
+
+    if (uninstall) {
+      const removedThinkingPhrases = removeVsCodeThinkingPhrases(settingsPath);
+      if (removedThinkingPhrases) {
+        console.log(pc.green(`Removed chat.agent.thinking.phrases from ${settingsPath}`));
+      } else {
+        console.log(pc.dim(`No chat.agent.thinking.phrases entry found in ${settingsPath}`));
+      }
+
+      if (process.platform === 'darwin') {
+        const installedScheduler = getInstalledSchedulerInfo();
+        if (installedScheduler.installed) {
+          console.log(pc.cyan('Uninstalling macOS launchd scheduler...'));
+          uninstallMacScheduler();
+          console.log(pc.green('Scheduler uninstalled.'));
+        } else {
+          console.log(pc.dim('No macOS scheduler was installed.'));
+        }
+      }
+
+      return;
+    }
+
+    if (staticPackPath) {
+      const pack = getStaticPackByPath(staticPackPath);
+      if (!pack) {
+        throw new Error(`Static pack not found: ${staticPackPath}`);
+      }
+
+      if (dryRun) {
+        console.log(pc.bold(pc.cyan(`Dry run only — would write ${pack.phrases.length} phrases from ${pack.name} to ${settingsPath}`)));
+        console.log(pc.dim('Preview:'));
+        for (const phrase of pack.phrases.slice(0, 5)) {
+          console.log(`${pc.green('•')} ${phrase}`);
+        }
+
+        if (!isInteractive) {
+          return;
+        }
+
+        const nextAction = await promptForPostDryRunAction('static pack');
+        if (!nextAction || nextAction === 'exit') {
+          outro(pc.yellow('Interactive run finished after preview. No settings were changed.'));
+          return;
+        }
+
+        if (nextAction === 'edit') {
+          continue;
+        }
+
+        dryRun = false;
+        if (process.platform === 'darwin' && getInstalledSchedulerInfo().installed) {
+          const nextUninstallScheduler = await promptForStaticSchedulerAfterDryRun();
+          if (nextUninstallScheduler === null) {
+            return;
+          }
+
+          uninstallScheduler = nextUninstallScheduler;
+        }
+
+        outro(pc.green('Installing static pack…'));
+      }
+
+      writeVsCodeSettings(settingsPath, pack.phrases, pack.mode);
+      console.log(pc.green(`Updated ${settingsPath}`));
+      console.log(pc.bold(`Installed static pack ${pack.name} with ${pack.phrases.length} phrases.`));
+
+      if (uninstallScheduler && process.platform === 'darwin') {
+        console.log(pc.cyan('Uninstalling macOS launchd scheduler so it does not overwrite this static pack...'));
+        uninstallMacScheduler();
+        console.log(pc.green('Scheduler uninstalled.'));
+      }
+
+      if (process.platform === 'darwin') {
+        const installedScheduler = getInstalledSchedulerInfo();
+        if (installedScheduler.installed) {
+          console.log(pc.dim(`Scheduler still installed → ${formatConfigPathForDisplay(installedScheduler.configPath ?? configPath ?? resolveConfigPath(args.configPath))}`));
+        }
+      }
+
+      return;
+    }
+
+    validateConfig(config);
+
+    const enabledSources = dynamicSources.filter(source => source.isEnabled(config));
+    logInfo(config, `Running ${enabledSources.length} dynamic source(s)`);
+
+    let phrases: string[];
+
+    try {
+      startInteractiveProgress(`Fetching ${enabledSources.length} dynamic source${enabledSources.length === 1 ? '' : 's'}`);
+      const sourceItems = (await Promise.all(enabledSources.map(source => source.fetch(config)))).flat();
+      const articles = sourceItems.filter((item): item is ArticleItem => item.type === 'article');
+      const stocks = sourceItems.filter(item => item.type === 'stock');
+
+      startInteractiveProgress(`Preparing ${sourceItems.length} fetched item${sourceItems.length === 1 ? '' : 's'}`);
+      const stockPhrases = dedupePhrases(stocks.map(stock => buildStockPhrase(stock, config)));
+      const fallbackArticlePhrases = buildBasicArticlePhrases(articles, config);
+      const articlePhrases = config.githubModels.enabled && articles.length > 0
+        ? await buildModelArticlePhrases(articles, config, {
+            onProgress: startInteractiveProgress,
+          }).catch((error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn(`GitHub Models formatting skipped — ${message}`);
+            startInteractiveProgress('GitHub Models unavailable, falling back to feed phrases');
+            return fallbackArticlePhrases;
+          })
+        : fallbackArticlePhrases;
+
+      phrases = dedupePhrases([...stockPhrases, ...articlePhrases]);
+      stopInteractiveProgress(dryRun ? `Dry run ready — generated ${phrases.length} phrases` : `Generated ${phrases.length} phrases`);
+    } catch (error) {
+      failInteractiveProgress('Dynamic run failed');
+      throw error;
+    }
+
+    if (phrases.length === 0) {
+      throw new Error('No thinking phrases were generated from the configured sources.');
+    }
+
+    if (dryRun) {
+      console.log(pc.bold(pc.cyan(`Dry run only — would write ${phrases.length} phrases to ${settingsPath}`)));
+      console.log(pc.dim('Preview:'));
+      for (const phrase of phrases.slice(0, 5)) {
+        console.log(`${pc.green('•')} ${phrase}`);
+      }
+
+      if (!isInteractive) {
+        return;
+      }
+
+      const nextAction = await promptForPostDryRunAction('dynamic phrases');
+      if (!nextAction || nextAction === 'exit') {
+        outro(pc.yellow('Interactive run finished after preview. No settings were changed.'));
+        return;
+      }
+
+      if (nextAction === 'edit') {
+        continue;
+      }
+
+      dryRun = false;
+      if (process.platform === 'darwin') {
+        const schedulerOverrides = await promptForDynamicSchedulerAfterDryRun();
+        if (!schedulerOverrides) {
+          return;
+        }
+
+        installScheduler = Boolean(schedulerOverrides.installScheduler);
+        schedulerIntervalSeconds = schedulerOverrides.schedulerIntervalSeconds ?? schedulerIntervalSeconds;
+        config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
+      }
+
+      outro(pc.green('Installing dynamic phrases…'));
+    }
+
+    if (isInteractive) {
+      if (createNewConfig) {
+        const namedConfigPath = await promptForConfigName(config);
+        if (!namedConfigPath) {
+          outro(pc.yellow('Interactive run cancelled. No settings were changed.'));
+          return;
+        }
+
+        configPath = resolveConfigPath(namedConfigPath);
+        schedulerConfigPath = namedConfigPath;
+        createNewConfig = false;
+      }
+
+      if (!configPath) {
+        throw new Error('Interactive config path was not resolved before save.');
+      }
+
+      writeConfigFile(configPath, config);
+      console.log(pc.dim(`Saved dynamic config → ${formatConfigPathForDisplay(configPath)}`));
+    }
+
+    writeVsCodeSettings(settingsPath, phrases, config.mode);
+    console.log(pc.green(`Updated ${settingsPath}`));
+    console.log(
+      pc.bold(
+        `Replaced thinking phrases with ${phrases.length} phrases from ${enabledSources.length} source(s)${config.githubModels.enabled ? ' using GitHub Models formatting when available' : ''}`,
+      ),
+    );
+
+    if (installScheduler && process.platform === 'darwin') {
+      config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
+      const resolvedSchedulerConfigPath = resolveConfigPath(schedulerConfigPath ?? configPath ?? args.configPath);
+      writeConfigFile(resolvedSchedulerConfigPath, config);
+      console.log(pc.cyan(`Installing macOS launchd scheduler for every ${schedulerIntervalSeconds} seconds...`));
+      installMacScheduler(schedulerIntervalSeconds, resolvedSchedulerConfigPath);
+      console.log(pc.green(`Scheduler installed for every ${schedulerIntervalSeconds} seconds using ${resolvedSchedulerConfigPath}.`));
+    }
+
+    if (process.platform === 'darwin') {
+      const installedScheduler = getInstalledSchedulerInfo();
+      if (installedScheduler.installed) {
+        console.log(
+          pc.dim(
+            `Scheduler status: installed${installedScheduler.intervalSeconds ? ` every ${installedScheduler.intervalSeconds}s` : ''} → ${formatConfigPathForDisplay(installedScheduler.configPath ?? configPath ?? resolveConfigPath(args.configPath))}`,
+          ),
+        );
+      }
+    }
+
+    return;
+  }
+}

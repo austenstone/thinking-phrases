@@ -1,0 +1,78 @@
+{
+  "limit": 3,
+  "mode": "replace",
+  "target": "auto",
+  "verbose": false,
+  "debug": false,
+  "feeds": [],
+  "phraseFormatting": {
+    "includeSource": true,
+    "includeTime": true,
+    "maxLength": 140
+  },
+  "githubModels": {
+    "enabled": false,
+    "model": "openai/gpt-4.1",
+    "tokenEnvVar": "GITHUB_MODELS_TOKEN",
+    "maxInputItems": 10,
+    "maxTokens": 300,
+    "maxPhrasesPerArticle": 2,
+    "temperature": 0.2,
+    "fetchArticleContent": true,
+    "maxArticleContentLength": 6000
+  },
+  "stockQuotes": {
+    "enabled": true,
+    "symbols": [
+      "MSFT"
+    ],
+    "includeMarketState": false
+  },
+  "hackerNews": {
+    "enabled": false,
+    "feed": "top",
+    "maxItems": 10,
+    "minScore": 50
+  },
+  "earthquakes": {
+    "enabled": false,
+    "zipCode": "",
+    "minMagnitude": 4,
+    "windowHours": 24,
+    "limit": 10,
+    "radiusKm": 500,
+    "orderBy": "time"
+  },
+  "weatherAlerts": {
+    "enabled": false,
+    "zipCode": "",
+    "area": "FL",
+    "minimumSeverity": "moderate",
+    "limit": 10
+  },
+  "customJson": {
+    "enabled": false,
+    "url": "https://example.com/api/articles.json",
+    "itemsPath": "items",
+    "titleField": "title",
+    "contentField": "summary",
+    "linkField": "url",
+    "sourceField": "source.name",
+    "sourceLabel": "Example API",
+    "dateField": "publishedAt",
+    "idField": "id",
+    "maxItems": 10
+  },
+  "githubActivity": {
+    "enabled": false,
+    "mode": "repo-commits",
+    "repo": "microsoft/vscode",
+    "org": "github",
+    "branch": "main",
+    "feedKind": "timeline",
+    "feedUrl": "",
+    "maxItems": 10,
+    "sinceHours": 24,
+    "tokenEnvVar": "GITHUB_TOKEN"
+  }
+}
