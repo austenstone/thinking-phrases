@@ -1,8 +1,9 @@
 import { resolve } from 'node:path';
-import process from 'node:process';
 import { execFileSync } from 'node:child_process';
+import process from 'node:process';
 import { outro, spinner } from '@clack/prompts';
 import pc from 'picocolors';
+
 import { DEFAULT_CONFIG, mergeConfig, parseArgs, readConfigFile, resolveConfigPath, validateConfig, writeConfigFile } from './config.js';
 import { buildModelArticlePhrases } from './githubModels.js';
 import {
@@ -19,6 +20,7 @@ import { TaskHealthTracker } from './taskHealth.js';
 import { formatArticlePhrase } from './phraseFormats.js';
 import type { ArticleItem, Config } from './types.js';
 import { dedupePhrases, loadDotEnv, logInfo, resolveSettingsPath, truncate } from './utils.js';
+
 import { hydrateArticleContent } from '../sources/rss.js';
 import { buildStockPhrase } from '../sources/stocks.js';
 import { removeVsCodeThinkingPhrases, writeVsCodeSettings } from '../sinks/vscodeSettings.js';
@@ -353,7 +355,7 @@ export async function runDynamicPhrases(): Promise<void> {
             } catch (error: unknown) {
               const message = error instanceof Error ? error.message : String(error);
               const warning = `GitHub Models formatting skipped for ${type} — ${message}`;
-              console.warn(warning);
+              logInfo(config, warning);
               healthTracker.addWarning(warning);
               startInteractiveProgress('GitHub Models unavailable, falling back to feed phrases');
               healthTracker.setPhase('formatting-phrases', 'GitHub Models unavailable, falling back to feed phrases');

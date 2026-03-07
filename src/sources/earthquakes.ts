@@ -1,5 +1,5 @@
 import type { ArticleItem, Config, PhraseSource } from '../core/types.js';
-import { fetchJson, fetchUsZipLocation, logInfo, relativeTime } from '../core/utils.js';
+import { fetchJson, fetchUsZipLocation, hoursToMs, logInfo, relativeTime } from '../core/utils.js';
 
 interface UsgsFeature {
   id: string;
@@ -43,7 +43,7 @@ export async function fetchEarthquakeArticles(config: Config): Promise<ArticleIt
     return [];
   }
 
-  const startTime = new Date(Date.now() - config.earthquakes.windowHours * 60 * 60 * 1000).toISOString();
+  const startTime = new Date(Date.now() - hoursToMs(config.earthquakes.windowHours)).toISOString();
   const params = new URLSearchParams({
     format: 'geojson',
     orderby: config.earthquakes.orderBy,

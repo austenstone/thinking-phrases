@@ -2,6 +2,8 @@ import { formatHackerNewsPhrase } from '../core/phraseFormats.js';
 import type { ArticleItem, Config, PhraseSource } from '../core/types.js';
 import { fetchJson, logInfo, relativeTime, stripHtml } from '../core/utils.js';
 
+const HN_API_BASE = 'https://hacker-news.firebaseio.com/v0';
+
 interface HackerNewsItem {
   by?: string;
   descendants?: number;
@@ -33,14 +35,14 @@ export async function fetchHackerNewsArticles(config: Config): Promise<ArticleIt
   }
 
   const listName = HN_ENDPOINTS[config.hackerNews.feed];
-  const ids = await fetchJson<number[]>(`https://hacker-news.firebaseio.com/v0/${listName}.json`);
+  const ids = await fetchJson<number[]>(`${HN_API_BASE}/${listName}.json`);
   const fetchCount = Math.min(Math.max(config.hackerNews.maxItems * 3, config.hackerNews.maxItems), 60);
   const candidateIds = ids.slice(0, fetchCount);
 
   logInfo(config, `Fetching ${candidateIds.length} Hacker News items from ${config.hackerNews.feed}`);
 
   const rawItems = await Promise.all(
-    candidateIds.map(id => fetchJson<HackerNewsItem>(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).catch(() => null)),
+    candidateIds.map(id => fetchJson<HackerNewsItem>(`${HN_API_BASE}/item/${id}.json`).catch(() => null)),
   );
 
   return rawItems

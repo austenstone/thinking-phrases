@@ -7,6 +7,7 @@ import { logDebug, logInfo } from './utils.js';
 const CACHE_DIR = join(homedir(), '.cache', 'thinking-phrases');
 const SOURCE_TIMESTAMPS_FILE = join(CACHE_DIR, 'source-timestamps.json');
 const MODEL_CACHE_FILE = join(CACHE_DIR, 'model-cache.json');
+const DEFAULT_CACHE_TTL_SECONDS = 604800; // 7 days
 
 type SourceTimestamps = Record<string, number>;
 
@@ -126,7 +127,7 @@ export function partitionArticlesByModelCache(
   articles: ArticleItem[],
   config: Config,
 ): { uncached: ArticleItem[]; cachedPhrases: string[] } {
-  const ttl = config.githubModels.cacheTtlSeconds ?? 604800;
+  const ttl = config.githubModels.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
   const cache = pruneModelCache(readModelCache(), ttl);
   const uncached: ArticleItem[] = [];
   const cachedPhrases: string[] = [];
@@ -153,7 +154,7 @@ export function partitionArticlesByModelCache(
  * For better accuracy, call this per-chunk where articles and phrases align tightly.
  */
 export function cacheModelResults(articles: ArticleItem[], phrases: string[], config: Config): void {
-  const ttl = config.githubModels.cacheTtlSeconds ?? 604800;
+  const ttl = config.githubModels.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
   const cache = pruneModelCache(readModelCache(), ttl);
   const maxPerArticle = config.githubModels.maxPhrasesPerArticle;
 
@@ -173,16 +174,6 @@ export function cacheModelResults(articles: ArticleItem[], phrases: string[], co
   // under unique keys and never get reused.
 
   writeModelCache(cache);
-}
-
-/**
- * Get a summary of the current cache state, useful for debug/health output.
- */
-export function getCacheStats(): { sources: SourceTimestamps; modelEntries: number } {
-  return {
-    sources: readSourceTimestamps(),
-    modelEntries: Object.keys(readModelCache()).length,
-  };
 }
 
 // --- Phrase store (merge across fetch intervals) ---
@@ -210,23 +201,6 @@ export function storePhrases(sourceType: string, phrases: string[]): void {
   const store = readPhraseStore();
   store[sourceType] = { phrases, updatedAt: Date.now() };
   writePhraseStore(store);
-}
-
-/**
- * Retrieve the stored phrases for a given source type.
- * Returns an empty array if the source has never been stored.
- */
-export function getStoredPhrases(sourceType: string): string[] {
-  const store = readPhraseStore();
-  return store[sourceType]?.phrases ?? [];
-}
-
-/**
- * Merge all stored phrases across all source types into a single array.
- */
-export function getAllStoredPhrases(): string[] {
-  const store = readPhraseStore();
-  return Object.values(store).flatMap(entry => entry.phrases);
 }
 
 /**
@@ -260,13 +234,4 @@ export function getMergedPhrases(limit: number): string[] {
   }
 
   return result.slice(0, limit);
-}
-
-/**
- * Remove a source from the phrase store (e.g. when disabled).
- */
-export function clearStoredPhrases(sourceType: string): void {
-  const store = readPhraseStore();
-  delete store[sourceType];
-  writePhraseStore(store);
 }

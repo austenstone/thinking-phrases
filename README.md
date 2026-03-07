@@ -18,18 +18,20 @@ Or maybe you just want the [static thinking phrases](https://github.com/austenst
 
 | Source | What it shows | Example phrase |
 |--------|--------------|----------------|
-| **RSS / Atom** | Any feed URL | `Ars Technica — Linux 6.14 lands with… — 2h ago` |
-| **Stocks** | Live ticker quotes via Yahoo Finance | `NVDA — $128.44 — ▼ 0.84%` |
-| **Hacker News** | Top/new/best/ask/show/jobs | `Show HN: I built a database in a spreadsheet — 45m ago` |
-| **Earthquakes** | USGS earthquake catalog near a ZIP | `M4.2 — 12 km NE of Ridgecrest, CA — 38m ago` |
-| **Weather Alerts** | NOAA/NWS severe weather by ZIP | `Severe Thunderstorm Warning — Broward, FL — 12m ago` |
-| **Custom JSON** | Any JSON API with configurable field mapping | `My API — Article title — 1h ago` |
-| **GitHub Commits** | Recent repo or org commits with diffs | `vscode@c0ebf3e fix devtools entrypoint (+1 -1) 4h ago - @deepak1556` |
-| **GitHub Feeds** | Org activity, timeline, security advisories | `@dependabot opened a pull request in copilot-sdk — 3m ago` |
+| **RSS / Atom** | Any feed URL | `Linux 6.14 lands with io_uring changes — Ars Technica (2h ago)` |
+| **Stocks** | Live ticker quotes via Yahoo Finance | `NVDA $128.44 ▼ 0.84% 🟢` |
+| **Hacker News** | Top/new/best/ask/show/jobs | `I built a database in a spreadsheet — HN @author 342 pts (45m ago)` |
+| **Earthquakes** | USGS earthquake catalog near a ZIP | `M4.2 — 12 km NE of Ridgecrest, CA — USGS (38m ago)` |
+| **Weather** | Current conditions + NWS severe alerts | `Fort Lauderdale, FL, 81°F, Partly Cloudy — Weather.gov` |
+| **Custom JSON** | Any JSON API with configurable field mapping | `Article title — My API (1h ago)` |
+| **GitHub Commits** | Recent repo or org commits with diffs | `fix devtools entrypoint — vscode +1/-1 @deepak1556 (4h ago)` |
+| **GitHub Feeds** | Org activity, timeline, security advisories | `opened a pull request in copilot-sdk — @dependabot (3m ago)` |
 
 ### AI-powered formatting
 
-Enable [GitHub Models](https://docs.github.com/en/github-models) and the engine rewrites raw headlines into concise, factual phrases. For GitHub commits, it can digest the **full commit diff** so the summary reflects what actually changed.
+Enable [GitHub Models](https://docs.github.com/en/github-models) and each article is individually sent to the model for rewriting into concise, factual phrases. Source attribution (`— Source (time)`) is appended automatically after the model responds — the model focuses purely on content. Works with any OpenAI-compatible model including `gpt-4o-mini`, `gpt-5`, and `o3`.
+
+Phrases from all sources are persisted in a local phrase store (`~/.cache/thinking-phrases/phrase-store.json`) so sources with different refresh intervals don't overwrite each other. Stocks refresh every 60s, RSS every 6h — both stay in the output.
 
 ### Static phrase packs
 
@@ -119,7 +121,8 @@ Live prices via Yahoo Finance. Supports market state labels (pre-market, after-h
 "stockQuotes": {
   "enabled": true,
   "symbols": ["MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "AMD"],
-  "includeMarketState": true
+  "includeMarketState": true,
+  "showClosed": false
 }
 ```
 
@@ -150,9 +153,11 @@ Enter a ZIP code and the engine resolves it to lat/lon, then queries the USGS ea
 }
 ```
 
-### Weather alerts (NOAA/NWS)
+### Weather (NOAA/NWS)
 
-Enter a ZIP code and the engine resolves it to a state, then queries NOAA for active severe weather alerts.
+Enter a ZIP code and the engine resolves it to coordinates, finds the nearest NWS observation station, and fetches **current conditions** (temperature, description, wind, humidity). Also checks for active severe weather alerts.
+
+If no ZIP is configured, the interactive CLI auto-detects your location via IP geolocation.
 
 ```json
 "weatherAlerts": {
@@ -162,6 +167,8 @@ Enter a ZIP code and the engine resolves it to a state, then queries NOAA for ac
   "limit": 10
 }
 ```
+
+Example output: `Fort Lauderdale, FL, 81°F, Partly Cloudy — Weather.gov`
 
 ### Custom JSON API
 
@@ -223,16 +230,40 @@ Three modes for GitHub data:
 
 Available feed kinds: `timeline`, `current-user-public`, `current-user`, `current-user-actor`, `security-advisories`, `organization`, `custom-url`.
 
+## Phrase format
+
+Phrases are content-first with source attribution at the end. Each source type has a customizable template:
+
+```json
+"phraseFormatting": {
+  "maxLength": 140,
+  "templates": {
+    "article": "%title% — %source% (%time%)",
+    "hackerNews": "%title% — HN %score% (%time%)",
+    "stock": "%symbol% %price% %change% %market%",
+    "githubCommit": "%headline% — %repo% %delta% @%author% (%time%)",
+    "githubFeed": "%action% — @%handle% (%time%)"
+  }
+}
+```
+
+AI-generated phrases get their source suffix appended automatically with source-specific metadata:
+- **HN**: `— HN @author 342 pts (2h ago)`
+- **GitHub commits**: `— vscode +12/-3 @octocat (5m ago)`
+- **RSS/Blog**: `— The GitHub Blog (3h ago)`
+
 ## GitHub Models (AI)
 
-When enabled, the engine sends fetched items to GitHub Models for rewriting into concise, factual phrases. Falls back to the normal formatter if auth or inference fails.
+When enabled, each article is sent individually to GitHub Models for rewriting into concise, factual phrases. The model focuses on content only — source attribution (`— Source (time)`) and source-specific metadata (HN score, commit deltas, author) are appended automatically after the response.
 
-For GitHub commits specifically, the model receives the full commit diff as additional context when extra content fetching is enabled — so it can summarize what actually changed, not just echo the commit message.
+Uses the [OpenAI SDK](https://github.com/openai/openai-node) for compatibility with all models including reasoning models (`gpt-5`, `o3`). Falls back to basic formatting if auth or inference fails.
 
 ```json
 "githubModels": {
   "enabled": true,
-  "model": "openai/gpt-4.1",
+  "model": "openai/gpt-4o-mini",
+  "endpoint": "https://models.github.ai/inference",
+  "maxConcurrency": 3,
   "fetchArticleContent": true
 }
 ```
@@ -262,16 +293,16 @@ The interactive installer includes built-in presets to get started fast:
 The interactive installer can set up a `launchd` scheduler that refreshes your phrases on a timer. If you cloned the repo, you can also install it manually:
 
 ```bash
-npm run phrases:schedule             # default: every 3600s (1 hour)
-npm run phrases:schedule -- 300      # every 5 minutes
-npm run phrases:schedule -- 900 ./configs/stocks-only.config.json
+npm run schedule             # default: every 3600s (1 hour)
+npm run schedule -- 300      # every 5 minutes
+npm run schedule -- 900 ./configs/stocks-only.config.json
 ```
 
 The scheduler runs at the OS level. Your VS Code settings update silently in the background.
 
 ```bash
-npm run phrases:trigger         # run the installed scheduler now (or fall back to a direct run)
-npm run phrases:unschedule      # remove the scheduler
+npm run schedule:trigger     # run the installed scheduler now (or fall back to a direct run)
+npm run schedule:remove      # remove the scheduler
 npx thinking-phrases --uninstall  # remove thinking phrases from settings
 ```
 
@@ -291,8 +322,8 @@ configs/
 ```
 
 ```bash
-npm run phrases:run -- --config configs/stocks-only.config.json
-npm run phrases:schedule -- 300 configs/stocks-only.config.json
+npm start -- --config configs/stocks-only.config.json
+npm run schedule -- 300 configs/stocks-only.config.json
 ```
 
 ## Static packs
@@ -349,8 +380,9 @@ Sources → Normalize → Format → Write
 
 1. **Sources** fetch live data (RSS, stocks, GitHub, USGS, NOAA, JSON APIs)
 2. **Core** normalizes everything into article or stock items
-3. **Formatter** builds phrases — either basic `source — title — time` or AI-rewritten via GitHub Models
-4. **Sink** writes the final phrases into VS Code `settings.json`
+3. **Formatter** builds display phrases — content first, source/metadata suffix appended (e.g. `— HN @user 342 pts (2h ago)`). AI-rewritten phrases get the same suffix treatment.
+4. **Phrase store** persists phrases per-source in `~/.cache/thinking-phrases/` so different refresh intervals don't clobber each other
+5. **Sink** writes the merged phrases into VS Code `settings.json` using `jsonc-parser` (preserves comments and formatting)
 
 The source catalog is modular. Each source is a simple `{ isEnabled, fetch }` object registered in the catalog. Adding a new source means writing one file and registering it.
 

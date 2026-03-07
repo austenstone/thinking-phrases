@@ -44,7 +44,7 @@ fi
 
 echo "No installed scheduler found; running thinking phrases directly"
 if [[ -n "${THINKING_PHRASES_CONFIG:-}" ]]; then
-  npm run phrases:run -- --config "$THINKING_PHRASES_CONFIG"
+  npm start -- --config "$THINKING_PHRASES_CONFIG"
 else
-  npm run phrases:run
+  npm start
 fi

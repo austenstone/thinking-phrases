@@ -150,6 +150,11 @@ export function stripHtml(input?: string): string | undefined {
   return cleaned || undefined;
 }
 
+/** Convert hours to milliseconds. */
+export function hoursToMs(hours: number): number {
+  return hours * 3_600_000;
+}
+
 export function relativeTime(input?: string): string | undefined {
   if (!input) {
     return undefined;

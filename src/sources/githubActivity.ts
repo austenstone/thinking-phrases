@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { formatGitHubCommitPhrase, formatGitHubFeedPhrase } from '../core/phraseFormats.js';
 import type { ArticleItem, Config, GitHubActivityConfig, GitHubFeedKind, PhraseFormatTemplates, PhraseSource } from '../core/types.js';
-import { USER_AGENT, fetchJson, fetchText, logDebug, logInfo, relativeTime, singleLine } from '../core/utils.js';
+import { USER_AGENT, fetchJson, fetchText, hoursToMs, logDebug, logInfo, relativeTime, singleLine } from '../core/utils.js';
 import { hydrateArticleContent, parseFeedArticles } from './rss.js';
 
 interface GitHubCommitListItem {
@@ -508,7 +508,7 @@ async function fetchRepoCommitArticles(config: Config): Promise<ArticleItem[]> {
   const token = await getGitHubToken(config.githubActivity);
   const params = new URLSearchParams({
     per_page: String(config.githubActivity.maxItems),
-    since: new Date(Date.now() - config.githubActivity.sinceHours * 60 * 60 * 1000).toISOString(),
+    since: new Date(Date.now() - hoursToMs(config.githubActivity.sinceHours)).toISOString(),
   });
 
   if (config.githubActivity.branch?.trim()) {
@@ -539,7 +539,7 @@ async function fetchOrgCommitArticles(config: Config): Promise<ArticleItem[]> {
   const eventsUrl = `https://api.github.com/orgs/${config.githubActivity.org}/events?${params.toString()}`;
   logInfo(config, `Fetching GitHub org events from ${eventsUrl}`);
   const events = await fetchGitHubJson<GitHubOrgEvent[]>(eventsUrl, token);
-  const sinceThreshold = Date.now() - config.githubActivity.sinceHours * 60 * 60 * 1000;
+  const sinceThreshold = Date.now() - hoursToMs(config.githubActivity.sinceHours);
 
   const pushEvents = events
     .filter(event => event.type === 'PushEvent' && event.repo?.name && event.payload?.head)

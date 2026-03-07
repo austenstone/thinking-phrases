@@ -19,7 +19,7 @@ echo "[$(timestamp)] thinking-phrases scheduler run started"
 
 if [[ -n "${THINKING_PHRASES_CONFIG:-}" ]]; then
   echo "[$(timestamp)] config: $THINKING_PHRASES_CONFIG"
-  if npm run phrases:run -- --config "$THINKING_PHRASES_CONFIG"; then
+  if npm start -- --config "$THINKING_PHRASES_CONFIG"; then
     echo "[$(timestamp)] thinking-phrases scheduler run completed successfully"
   else
     exit_code=$?
@@ -28,7 +28,7 @@ if [[ -n "${THINKING_PHRASES_CONFIG:-}" ]]; then
   fi
 else
   echo "[$(timestamp)] config: default"
-  if npm run phrases:run; then
+  if npm start; then
     echo "[$(timestamp)] thinking-phrases scheduler run completed successfully"
   else
     exit_code=$?
