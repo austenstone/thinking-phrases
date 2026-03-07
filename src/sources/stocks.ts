@@ -110,6 +110,10 @@ export async function fetchStockItems(config: Config): Promise<StockItem[]> {
       return [];
     }
 
+    if (!config.stockQuotes.showClosed && quote.marketState === 'CLOSED') {
+      return [];
+    }
+
     const details = getMarketPriceDetails(quote);
     if (!Number.isFinite(details.price)) {
       return [];

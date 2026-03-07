@@ -53,11 +53,10 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@azure-rest/ai-inference": "^1.0.0-beta.6",
-    "@azure/core-auth": "^1.10.1",
     "@clack/prompts": "^1.1.0",
     "fast-xml-parser": "^5.4.2",
     "jsonc-parser": "^3.3.1",
+    "openai": "^6.27.0",
     "picocolors": "^1.1.1",
     "tsx": "^4.19.0",
     "yahoo-finance2": "^3.13.2"

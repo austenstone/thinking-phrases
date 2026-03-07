@@ -4,3 +4,7 @@ dist/
 .DS_Store
 Thumbs.db
 *.swp
+
+# Runtime logs/state
+launchd/*.log
+launchd/task-health.json

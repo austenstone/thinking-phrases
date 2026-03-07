@@ -163,11 +163,15 @@ describe('buildModelArticlePhrases', () => {
     const originalToken = process.env.GITHUB_TOKEN;
     process.env.GITHUB_TOKEN = 'ghp_test_models_token';
 
-    // Mock the Azure AI Inference client at module level by mocking fetch
-    // Since the module uses @azure-rest/ai-inference which calls fetch internally
+    // Mock fetch — the OpenAI SDK uses fetch internally
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({
-        choices: [{ message: { content: '{"phrases": ["test phrase"]}' } }],
+        id: 'test',
+        object: 'chat.completion',
+        created: Date.now(),
+        model: 'gpt-4o-mini',
+        choices: [{ index: 0, message: { role: 'assistant', content: '{"phrases": ["test phrase"]}' }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 },
       })),
     );
 

@@ -48,6 +48,7 @@ export interface StockQuoteConfig {
 	enabled: boolean;
 	symbols: string[];
 	includeMarketState: boolean;
+	showClosed?: boolean;
 	fetchIntervalSeconds?: number;
 }
 
@@ -141,14 +142,6 @@ export interface CliOverrides extends Partial<Config> {
 	configPath?: string;
 	schedulerConfigPath?: string;
 	staticPackPath?: string;
-}
-
-export interface GitHubModelsResponse {
-	choices?: {
-		message?: {
-			content?: string;
-		};
-	}[];
 }
 
 export interface ArticleItem {

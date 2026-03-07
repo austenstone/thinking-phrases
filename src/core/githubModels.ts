@@ -1,8 +1,8 @@
-import ModelClient, { isUnexpected } from '@azure-rest/ai-inference';
-import { AzureKeyCredential } from '@azure/core-auth';
+import OpenAI from 'openai';
 import { execFileSync } from 'node:child_process';
-import type { ArticleItem, Config, GitHubModelsConfig, GitHubModelsResponse } from './types.js';
+import type { ArticleItem, Config, GitHubModelsConfig } from './types.js';
 import { decodeHtmlEntities, dedupePhrases, logDebug, singleLine } from './utils.js';
+import { appendSourceSuffix } from './phraseFormats.js';
 
 interface BuildModelArticlePhrasesOptions {
   onProgress?: (message: string) => void;
@@ -84,46 +84,23 @@ async function runGitHubModelsPrompt(config: GitHubModelsConfig, content: string
     );
   }
 
-  const endpoint = config.endpoint || DEFAULT_ENDPOINT;
-  const client = ModelClient(endpoint, new AzureKeyCredential(token));
-  const isReasoningModel = /\b(o1|o3|o4|gpt-5)\b/iu.test(config.model);
+  const client = new OpenAI({
+    baseURL: config.endpoint || DEFAULT_ENDPOINT,
+    apiKey: token,
+  });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- response type varies by endpoint; we check with isUnexpected below
-  let response: any;
-  try {
-    response = await client.path('/chat/completions').post({
-      body: {
-        model: config.model,
-        messages: [{ role: 'user', content }],
-        // Reasoning models (o1/o3/o4/gpt-5) only accept temperature=1
-        ...(isReasoningModel ? {} : { temperature: config.temperature }),
-        response_format: { type: 'json_object' },
-        // Reasoning models require max_completion_tokens; others use max_tokens
-        ...(isReasoningModel
-          ? { max_completion_tokens: config.maxTokens } as Record<string, unknown>
-          : { max_tokens: config.maxTokens }),
-      },
-    });
-  } catch (error: unknown) {
-    // The Azure SDK throws a SyntaxError when the API returns raw text (e.g. 429 rate limit).
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes('Too many requests') || message.includes('429')) {
-      throw new Error('GitHub Models 429: rate limited — try again shortly');
-    }
-    throw error;
-  }
+  const completion = await client.chat.completions.create({
+    model: config.model,
+    messages: [{ role: 'user', content }],
+    ...(config.temperature !== 1 ? { temperature: config.temperature } : {}),
+    max_completion_tokens: config.maxTokens,
+    response_format: { type: 'json_object' },
+  });
 
-  if (isUnexpected(response)) {
-    const errorBody = response.body as { error?: { message?: string; code?: string; type?: string } };
-    const status = response.status;
-    const detail = errorBody.error?.message ?? JSON.stringify(errorBody);
-    throw new Error(`GitHub Models ${status}: ${detail}`);
-  }
-
-  const body = response.body as GitHubModelsResponse;
-  const text = body.choices?.[0]?.message?.content?.trim();
+  const text = completion.choices?.[0]?.message?.content?.trim();
   if (!text) {
-    throw new Error(`GitHub Models response did not include content. Status: ${response.status}, body: ${JSON.stringify(body).slice(0, 300)}`);
+    const reason = completion.choices?.[0]?.finish_reason;
+    throw new Error(`GitHub Models returned empty content (finish_reason: ${reason ?? 'unknown'})`);
   }
 
   return text;
@@ -200,6 +177,7 @@ export async function buildModelArticlePhrases(
         'Return at most maxPhrasesPerArticle phrases per item.',
         'Prefer concrete details like numbers, locations, dates, features, examples, or outcomes.',
         'Avoid vague rewrites of the headline.',
+        'Do NOT include the source name or time/date in the phrase — those are appended separately.',
       ].join(' '),
       maxLength: config.phraseFormatting.maxLength,
       maxPhrasesPerArticle: config.githubModels.maxPhrasesPerArticle,
@@ -219,17 +197,27 @@ export async function buildModelArticlePhrases(
     completedChunks += 1;
     options.onProgress?.(`Generated GitHub Models phrases (${completedChunks}/${chunks.length})`);
 
+    // Tag each phrase with the source/time from its chunk's articles
+    const chunkSource = chunk[0]?.source;
+    const chunkTime = chunk[0]?.time;
+
     return extractModelPhrases(responseText)
       .map(phrase => singleLine(decodeHtmlEntities(phrase), config.phraseFormatting.maxLength))
-      .filter(Boolean);
+      .filter(Boolean)
+      .map(phrase => appendSourceSuffix(phrase, chunkSource, chunkTime));
   };
 
-  // Process batches with bounded concurrency
+  // Process chunks with bounded concurrency and a delay between batches
   const maxConcurrency = config.githubModels.maxConcurrency;
   const allPhrases: string[] = [];
   let lastError: unknown;
 
   for (let start = 0; start < chunks.length; start += maxConcurrency) {
+    // Pause between batches to avoid rate limits
+    if (start > 0) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
     const batch = chunks.slice(start, start + maxConcurrency);
     const settledResults = await Promise.allSettled(
       batch.map((chunk, batchIndex) => processChunk(chunk, start + batchIndex)),

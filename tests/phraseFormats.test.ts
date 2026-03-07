@@ -19,26 +19,26 @@ describe('PHRASE_SEPARATOR', () => {
 
 // ── formatArticlePhrase ──────────────────────────────────────────────
 // Default article format used by RSS, Earthquakes, Weather, Custom JSON.
-// Expected output: "Source — Title — 3h ago"
+// Expected output: "Title — Source (3h ago)"
 describe('formatArticlePhrase', () => {
   it('formats with source, title, and time', () => {
     expect(formatArticlePhrase(
       { source: 'GitHub Blog', title: 'Copilot in the CLI', time: '3h ago' },
-    )).toBe('GitHub Blog — Copilot in the CLI — 3h ago');
+    )).toBe('Copilot in the CLI — GitHub Blog (3h ago)');
   });
 
   it('omits source when includeSource is false', () => {
     expect(formatArticlePhrase(
       { source: 'GitHub Blog', title: 'Copilot in the CLI', time: '3h ago' },
       { includeSource: false },
-    )).toBe('Copilot in the CLI — 3h ago');
+    )).toBe('Copilot in the CLI — (3h ago)');
   });
 
   it('omits time when includeTime is false', () => {
     expect(formatArticlePhrase(
       { source: 'GitHub Blog', title: 'Copilot in the CLI', time: '3h ago' },
       { includeTime: false },
-    )).toBe('GitHub Blog — Copilot in the CLI');
+    )).toBe('Copilot in the CLI — GitHub Blog');
   });
 
   it('formats title only when source and time missing', () => {
@@ -48,25 +48,25 @@ describe('formatArticlePhrase', () => {
   it('omits source when empty string', () => {
     expect(formatArticlePhrase(
       { source: '', title: 'Title', time: '1h ago' },
-    )).toBe('Title — 1h ago');
+    )).toBe('Title — (1h ago)');
   });
 
   it('omits source when whitespace only', () => {
     expect(formatArticlePhrase(
       { source: '   ', title: 'Title', time: '2d ago' },
-    )).toBe('Title — 2d ago');
+    )).toBe('Title — (2d ago)');
   });
 
   it('omits time when empty string', () => {
     expect(formatArticlePhrase(
       { source: 'Src', title: 'Title', time: '' },
-    )).toBe('Src — Title');
+    )).toBe('Title — Src');
   });
 
   it('trims whitespace from all parts', () => {
     expect(formatArticlePhrase(
       { source: '  Src  ', title: '  Title  ', time: '  1h ago  ' },
-    )).toBe('Src — Title — 1h ago');
+    )).toBe('Title — Src (1h ago)');
   });
 
   it('omits both source and time when both disabled', () => {
@@ -355,7 +355,7 @@ describe('formatArticlePhrase with template', () => {
   it('falls back to default format when template is undefined', () => {
     expect(formatArticlePhrase(
       { source: 'RSS Feed', title: 'Big news', time: '2h ago' },
-    )).toBe('RSS Feed — Big news — 2h ago');
+    )).toBe('Big news — RSS Feed (2h ago)');
   });
 
   it('template still respects missing vars', () => {

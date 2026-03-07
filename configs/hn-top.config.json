@@ -15,22 +15,24 @@
     "includeTime": true,
     "maxLength": 140,
     "templates": {
-      "article": "%source% — %title% — %time%",
-      "hackerNews": "HN: %title% — %score% — %time%",
+      "article": "%title% — %source% (%time%)",
+      "hackerNews": "%title% — HN %score% (%time%)",
       "stock": "%symbol% %price% %change% %market%",
-      "githubCommit": "%headline% (%delta%) %repo%@%sha% - @%author% %time%",
-      "githubFeed": "@%handle% %action% — %time%"
+      "githubCommit": "%headline% — %repo% %delta% @%author% (%time%)",
+      "githubFeed": "%action% — @%handle% (%time%)"
     }
   },
   "githubModels": {
     "enabled": true,
+    "endpoint": "https://models.github.ai/inference",
     "model": "openai/gpt-5",
     "tokenEnvVar": "GITHUB_MODELS_TOKEN",
     "maxInputItems": 10,
     "maxInputTokens": 16000,
-    "maxTokens": 300,
+    "maxTokens": 4000,
+    "maxConcurrency": 1,
     "maxPhrasesPerArticle": 2,
-    "temperature": 0.2,
+    "temperature": 1,
     "fetchArticleContent": true,
     "maxArticleContentLength": 6000,
     "cacheTtlSeconds": 604800
@@ -60,6 +62,7 @@
       "AMD"
     ],
     "includeMarketState": true,
+    "showClosed": true,
     "fetchIntervalSeconds": 60
   },
   "hackerNews": {

@@ -37,11 +37,11 @@ export const DEFAULT_CONFIG: Config = {
     includeTime: true,
     maxLength: 140,
     templates: {
-      article: '%source% — %title% — %time%',
-      hackerNews: 'HN: %title% — %score% — %time%',
+      article: '%title% — %source% (%time%)',
+      hackerNews: '%title% — HN %score% (%time%)',
       stock: '%symbol% %price% %change% %market%',
-      githubCommit: '%headline% (%delta%) %repo%@%sha% - @%author% %time%',
-      githubFeed: '@%handle% %action% — %time%',
+      githubCommit: '%headline% — %repo% %delta% @%author% (%time%)',
+      githubFeed: '%action% — @%handle% (%time%)',
     },
   },
   githubModels: {
@@ -52,7 +52,7 @@ export const DEFAULT_CONFIG: Config = {
     maxInputItems: 10,
     maxInputTokens: 16000,
     maxTokens: 500,
-    maxConcurrency: 3,
+    maxConcurrency: 1,
     maxPhrasesPerArticle: 2,
     temperature: 0.2,
     fetchArticleContent: true,
@@ -63,6 +63,7 @@ export const DEFAULT_CONFIG: Config = {
     enabled: false,
     symbols: ['MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'AMD'],
     includeMarketState: true,
+    showClosed: true,
     fetchIntervalSeconds: 60,
   },
   hackerNews: {

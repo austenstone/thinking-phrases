@@ -67,7 +67,7 @@ describe('fetchHackerNewsArticles', () => {
     expect(result[0].link).toBe('https://example.com/1');
     // Second item has no URL, should use HN item URL
     expect(result[1].link).toBe('https://news.ycombinator.com/item?id=1002');
-    expect(result[0].displayPhrase).toContain('HN:');
+    expect(result[0].displayPhrase).toContain('First HN Story');
   });
 
   it('filters by minScore', async () => {

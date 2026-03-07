@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { homedir } from 'node:os';
 import type { ArticleItem, Config } from './types.js';
 import { logDebug, logInfo } from './utils.js';
@@ -8,18 +8,14 @@ const CACHE_DIR = join(homedir(), '.cache', 'thinking-phrases');
 const SOURCE_TIMESTAMPS_FILE = join(CACHE_DIR, 'source-timestamps.json');
 const MODEL_CACHE_FILE = join(CACHE_DIR, 'model-cache.json');
 
-interface SourceTimestamps {
-  [sourceType: string]: number; // epoch ms of last successful fetch
-}
+type SourceTimestamps = Record<string, number>;
 
 interface ModelCacheEntry {
   phrases: string[];
   cachedAt: number; // epoch ms
 }
 
-interface ModelCache {
-  [articleId: string]: ModelCacheEntry;
-}
+type ModelCache = Record<string, ModelCacheEntry>;
 
 function ensureCacheDir(): void {
   if (!existsSync(CACHE_DIR)) {
@@ -198,12 +194,10 @@ export function getCacheStats(): { sources: SourceTimestamps; modelEntries: numb
 
 const PHRASE_STORE_FILE = join(CACHE_DIR, 'phrase-store.json');
 
-interface PhraseStore {
-  [sourceType: string]: {
-    phrases: string[];
-    updatedAt: number;
-  };
-}
+type PhraseStore = Record<string, {
+  phrases: string[];
+  updatedAt: number;
+}>;
 
 function readPhraseStore(): PhraseStore {
   return readJson<PhraseStore>(PHRASE_STORE_FILE, {});

@@ -67,7 +67,7 @@ export interface ArticlePhraseOpts {
   template?: string;
 }
 
-/** Default: "Source — Title — 3h ago" */
+/** Default: "Title — Source (3h ago)" */
 export function formatArticlePhrase(
   vars: ArticlePhraseVars,
   opts?: ArticlePhraseOpts,
@@ -76,16 +76,14 @@ export function formatArticlePhrase(
     return applyFormatTemplate(opts.template, { ...vars });
   }
 
-  const parts: string[] = [];
+  const parts: string[] = [vars.title.trim()];
+  const suffix = [
+    opts?.includeSource !== false && vars.source?.trim() ? vars.source.trim() : '',
+    opts?.includeTime !== false && vars.time?.trim() ? `(${vars.time.trim()})` : '',
+  ].filter(Boolean).join(' ');
 
-  if (opts?.includeSource !== false && vars.source?.trim()) {
-    parts.push(vars.source.trim());
-  }
-
-  parts.push(vars.title.trim());
-
-  if (opts?.includeTime !== false && vars.time?.trim()) {
-    parts.push(vars.time.trim());
+  if (suffix) {
+    parts.push(suffix);
   }
 
   return parts.join(PHRASE_SEPARATOR);
@@ -205,4 +203,16 @@ export interface WeatherNoAlertsPhraseVars {
 /** "Weather.gov — No active alerts near Fort Lauderdale, FL" */
 export function formatWeatherNoAlertsPhrase(vars: WeatherNoAlertsPhraseVars): string {
   return `Weather.gov${PHRASE_SEPARATOR}No active alerts near ${vars.location}`;
+}
+
+// ── Source Suffix ───────────────────────────────────────────────────
+
+/**
+ * Append a "— Source (time)" suffix to a phrase.
+ * Used to tag model-generated phrases (which are content-only)
+ * with their source attribution after the fact.
+ */
+export function appendSourceSuffix(phrase: string, source?: string, time?: string): string {
+  const suffix = [source, time ? `(${time})` : ''].filter(Boolean).join(' ');
+  return suffix ? `${phrase}${PHRASE_SEPARATOR}${suffix}` : phrase;
 }
