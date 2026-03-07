@@ -9,6 +9,7 @@ export type GitHubFeedKind = 'timeline' | 'current-user-public' | 'current-user'
 export interface FeedConfig {
 	url: string;
 	source?: string;
+	fetchIntervalSeconds?: number;
 }
 
 export interface PhraseFormatTemplates {
@@ -28,21 +29,26 @@ export interface PhraseFormatting {
 
 export interface GitHubModelsConfig {
 	enabled: boolean;
+	endpoint: string;
 	model: string;
 	tokenEnvVar: string;
 	maxInputItems: number;
+	maxInputTokens: number;
 	maxTokens: number;
+	maxConcurrency: number;
 	maxPhrasesPerArticle: number;
 	temperature: number;
 	fetchArticleContent: boolean;
 	maxArticleContentLength: number;
 	systemPrompt?: string;
+	cacheTtlSeconds?: number;
 }
 
 export interface StockQuoteConfig {
 	enabled: boolean;
 	symbols: string[];
 	includeMarketState: boolean;
+	fetchIntervalSeconds?: number;
 }
 
 export interface HackerNewsConfig {
@@ -50,6 +56,7 @@ export interface HackerNewsConfig {
 	feed: HackerNewsFeed;
 	maxItems: number;
 	minScore: number;
+	fetchIntervalSeconds?: number;
 }
 
 export interface EarthquakeConfig {
@@ -61,6 +68,7 @@ export interface EarthquakeConfig {
 	place?: string;
 	radiusKm: number;
 	orderBy: EarthquakeOrder;
+	fetchIntervalSeconds?: number;
 }
 
 export interface WeatherAlertsConfig {
@@ -69,6 +77,7 @@ export interface WeatherAlertsConfig {
 	area?: string;
 	minimumSeverity: WeatherSeverity;
 	limit: number;
+	fetchIntervalSeconds?: number;
 }
 
 export interface CustomJsonConfig {
@@ -83,6 +92,7 @@ export interface CustomJsonConfig {
 	dateField?: string;
 	idField?: string;
 	maxItems: number;
+	fetchIntervalSeconds?: number;
 }
 
 export interface GitHubActivityConfig {
@@ -96,10 +106,12 @@ export interface GitHubActivityConfig {
 	maxItems: number;
 	sinceHours: number;
 	tokenEnvVar: string;
+	fetchIntervalSeconds?: number;
 }
 
 export interface Config {
 	feeds: FeedConfig[];
+	rssFetchIntervalSeconds: number;
 	limit: number;
 	mode: Mode;
 	target: Target;
@@ -113,6 +125,7 @@ export interface Config {
 	earthquakes: EarthquakeConfig;
 	weatherAlerts: WeatherAlertsConfig;
 	customJson: CustomJsonConfig;
+	customJsonSources?: CustomJsonConfig[];
 	githubActivity: GitHubActivityConfig;
 }
 
@@ -131,11 +144,11 @@ export interface CliOverrides extends Partial<Config> {
 }
 
 export interface GitHubModelsResponse {
-	choices?: Array<{
+	choices?: {
 		message?: {
 			content?: string;
 		};
-	}>;
+	}[];
 }
 
 export interface ArticleItem {

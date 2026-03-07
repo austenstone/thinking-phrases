@@ -1,7 +1,7 @@
 import YahooFinance from 'yahoo-finance2';
 import { formatStockPhrase as formatStockPhraseTemplate } from '../core/phraseFormats.js';
 import type { Config, PhraseSource, StockItem } from '../core/types.js';
-import { dedupePhrases, formatPrice, formatSignedPercent, logInfo, normalizeSymbols, truncate } from '../core/utils.js';
+import { formatPrice, formatSignedPercent, logInfo, normalizeSymbols, truncate } from '../core/utils.js';
 
 interface StockQuoteSnapshot {
   symbol?: string;

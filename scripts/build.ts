@@ -65,13 +65,13 @@ function main() {
     const phrases = categories.flatMap(c => c.tips.map(tip => tip[platform]));
     const settings = buildSettings(phrases);
     const outPath = join(OUT_DIR, `settings-${platform}.json`);
-    writeFileSync(outPath, JSON.stringify(settings, null, 2) + '\n');
+    writeFileSync(outPath, `${JSON.stringify(settings, null, 2)  }\n`);
     console.log(`\nWrote ${outPath} (${phrases.length} phrases)`);
   }
 
   const allPhrases = categories.flatMap(category => category.tips.map(tip => tip.mac));
   const vscodeTipsPath = join(OUT_DIR, 'vscode-tips.json');
-  writeFileSync(vscodeTipsPath, JSON.stringify(buildSettings(allPhrases), null, 2) + '\n');
+  writeFileSync(vscodeTipsPath, `${JSON.stringify(buildSettings(allPhrases), null, 2)  }\n`);
   console.log(`\nWrote ${vscodeTipsPath} (${allPhrases.length} tips)`);
 
   const legacyAllTipsPath = join(OUT_DIR, 'all-tips.json');
@@ -82,7 +82,7 @@ function main() {
 
   for (const pack of standalonePacks) {
     const outPath = join(OUT_DIR, `${pack.name}.json`);
-    writeFileSync(outPath, JSON.stringify(buildSettings(pack.phrases), null, 2) + '\n');
+    writeFileSync(outPath, `${JSON.stringify(buildSettings(pack.phrases), null, 2)  }\n`);
     console.log(`Wrote ${outPath} (${pack.phrases.length} tips)`);
   }
 

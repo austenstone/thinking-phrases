@@ -261,13 +261,13 @@ export async function fetchJson<T>(url: string, headers?: Record<string, string>
 interface ZippopotamResponse {
   country?: string;
   'post code'?: string;
-  places?: Array<{
+  places?: {
     latitude?: string;
     longitude?: string;
     'place name'?: string;
     state?: string;
     'state abbreviation'?: string;
-  }>;
+  }[];
 }
 
 const zipLocationCache = new Map<string, Promise<ZipLocation>>();

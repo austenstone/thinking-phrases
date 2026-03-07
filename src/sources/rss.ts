@@ -8,7 +8,7 @@ interface XmlObject {
   [key: string]: XmlValue;
 }
 
-interface XmlArray extends Array<XmlValue> {}
+type XmlArray = XmlValue[];
 
 type XmlValue = XmlPrimitive | XmlObject | XmlArray;
 

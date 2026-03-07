@@ -1,9 +1,9 @@
 name: Thinking Phrases Generator
 description: >
-  Evaluates GitHub Models for generating concise VS Code "thinking phrases"
-  from news articles, commits, and content items. Phrases appear as status bar
-  text in VS Code while Copilot is processing, so they must be short, factual,
-  concrete, and interesting.
+  Evaluates model quality for generating concise "thinking phrases" from real
+  full-length article content. Phrases appear in the VS Code status bar while
+  Copilot processes, so they must be short, factual, concrete, and interesting.
+  Test data uses real article content at production length (~6000 chars).
 model: openai/gpt-4.1
 modelParameters:
   temperature: 0.2
@@ -20,70 +20,78 @@ messages:
         "items": {{items}}
       }
 testData:
-  # --- RSS / blog article inputs ---
-  - maxLength: "140"
-    maxPhrasesPerArticle: "2"
-    items: >
-      [{"title":"GitHub Copilot now supports GPT-4.1 in VS Code","source":"GitHub Blog","time":"2026-03-01","content":"GitHub announced Copilot now uses GPT-4.1 for code completions, delivering 30% faster responses and improved multi-file context.","link":"https://github.blog/copilot-gpt41"}]
-    expected: '{"phrases":["Copilot now uses GPT-4.1 — 30% faster responses and better multi-file context","GitHub Copilot upgraded to GPT-4.1 in VS Code"]}'
+  # ── Full GitHub Blog: Security Lab Taskflow Agent (6000 chars) ───────
 
   - maxLength: "140"
-    maxPhrasesPerArticle: "2"
+    maxPhrasesPerArticle: "3"
     items: >
-      [{"title":"Node.js 24 released with native TypeScript support","source":"Node.js Blog","time":"2026-02-20","content":"Node.js 24 ships with built-in TypeScript execution via --experimental-strip-types, plus a new permissions model for sandboxed scripts.","link":"https://nodejs.org/blog/node24"}]
-    expected: '{"phrases":["Node.js 24 ships native TypeScript execution via --experimental-strip-types","Node.js 24 adds sandboxed permissions model for scripts"]}'
+      [{"title":"How to scan for vulnerabilities with GitHub Security Lab\u2019s open source AI-powered framework","source":"GitHub Blog","time":"Fri, 06 Mar 2026 21:09:04 +0000","content":"For the last few months, we\u2019ve been using the GitHub Security Lab Taskflow Agent along with a new set of auditing taskflows that specialize in finding web security vulnerabilities. They also turn out to be very successful at finding high-impact vulnerabilities in open source projects. As security researchers, we\u2019re used to losing time on possible vulnerabilities that turn out to be unexploitable, but with these new taskflows, we can now spend more of our time on manually verifying the results and sending out reports. Furthermore, the severity of the vulnerabilities that we\u2019re reporting is uniformly high. Many of them are authorization bypasses or information disclosure vulnerabilities that allow one user to login as somebody else or to access the private data of another user. Using these taskflows, we\u2019ve reported more than 80 vulnerabilities so far. At the time of writing, approximately 20 of them have already been disclosed. And we\u2019re continually updating our advisories page when new vulnerabilities are disclosed. In this blog post, we\u2019ll show a few concrete examples of high-impact vulnerabilities that are found by these taskflows, like accessing personally identifiable information (PII) in shopping carts of ecommerce applications or signing in with any password into a chat application. We\u2019ll also explain how the taskflows work, so you can learn how to write your own. The security community moves faster when it shares knowledge, which is why we\u2019ve made the framework open source and easy to run on your own project. The more teams using and contributing to it, the faster we collectively eliminate vulnerabilities. How to run the taskflows on your own project Want to get started right away? The taskflows are open source and easy to run yourself! Please note: A GitHub Copilot license is required, and the prompts will use premium model requests. Go to the seclab-taskflows repository and start a codespace. Wait a few minutes for the codespace to initialize. In the terminal, run ./scripts/audit/run_audit.sh myorg/myrepo It might take an hour or two to finish on a medium-sized repository. When it finishes, it\u2019ll open an SQLite viewer with the results. Open the audit_results table and look for rows with a check-mark in the has_vulnerability column. Tip: Due to the non-deterministic nature of LLMs, it is worthwhile to perform multiple runs of these audit taskflows on the same codebase. In certain cases, a second run can lead to entirely different results. In addition to this, you might perform those two runs using different models (e.g., the first using GPT 5.2 and the second using Claude Opus 4.6). Introduction to taskflows Taskflows are YAML files that describe a series of tasks that we want to do with an LLM. With them, we can write prompts to complete different tasks and have tasks that depend on each other. The seclab-taskflow-agent framework takes care of running the tasks sequentially and passing the results from one task to the next. For example, when auditing a repository, we first divide the repository into different components according to their functionalities. Then, for each component, we may want to collect some information such as entry points where it takes untrusted input from, intended privilege, and purposes of the component. These results are then stored in a database to provide the context for subsequent tasks. Based on the context data, we can then create different auditing tasks. We use tasks instead of one big prompt because LLMs have limited context windows, and complex, multi-step tasks are often not completed properly. The seclab-taskflow-agent can also run the same task across many components asynchronously. During audits, we often reuse the same prompt and task for every component, varying only the details. General taskflow design To minimize hallucinations and false positives at the taskflow design level, our taskflow starts with a threat modelling stage, where a repository is divided into different components based on functionalities and various information is collected.","link":"https://github.blog/security/how-to-scan-for-vulnerabilities-with-github-security-labs-open-source-ai-powered-framework/"}]
+    expected: '{"phrases":["Security Lab Taskflow Agent reported 80+ vulnerabilities in open source — 20 already disclosed","Run seclab-taskflows in a Codespace: ./scripts/audit/run_audit.sh myorg/myrepo","Agent finds auth bypasses and PII leaks in ecommerce and chat apps"]}'
+
+  # ── Full GitHub Blog: 60M Copilot Code Reviews (6000 chars) ─────────
 
   - maxLength: "140"
-    maxPhrasesPerArticle: "2"
+    maxPhrasesPerArticle: "3"
     items: >
-      [{"title":"M4.7 earthquake strikes near Salton Sea, California","source":"USGS","time":"2026-03-05T08:12:00Z","content":"A magnitude 4.7 earthquake was recorded 12 km NE of Bombay Beach, CA at 08:12 UTC. No tsunami warning issued. Depth: 8.3 km.","link":"https://earthquake.usgs.gov/earthquakes/eventpage/ci12345"}]
-    expected: '{"phrases":["M4.7 earthquake near Bombay Beach, CA — depth 8.3 km, no tsunami warning"]}'
+      [{"title":"60 million Copilot code reviews and counting","source":"GitHub Blog","time":"Thu, 05 Mar 2026 20:10:43 +0000","content":"Since our initial launch of Copilot code review (CCR) last April, usage has grown 10X, now accounting for more than one in five code reviews on GitHub. Behind the scenes, we\u2019ve been running continuous experiments to enhance comment quality. We also moved to an agentic architecture that retrieves repository context and reasons across changes. At every step of the way, we\u2019ve listened to your feedback: your survey answers and even your simple thumbs-up and thumbs-down reactions on comments have helped us identify key issues and iterate on our UX to provide a comprehensive review experience. Copilot code review handles pull request reviews and summaries, allowing teams to focus on more complex tasks. Redefining a good code review As Copilot code review evolved over time, so has our definition of a good code review. When we started building it in 2024, our goal was simple thoroughness. Since then, we\u2019ve learned that what developers actually value is high-signal feedback that helps them move a pull request forward quickly. Today, Copilot code review leverages the best models, memory, and agentic tool-calling to conduct comprehensive reviews. To get here, we\u2019ve used a continuous evaluation loop to tune the agent\u2019s judgment, focusing on three qualities that shape that experience: accuracy, signal, and speed. Accuracy Our aim has been for Copilot code review to deliver sound judgment, prioritizing consequential logic and maintainability issues. We evaluate performance in two ways: through internal testing against known code issues, and through production signals from real pull requests. In production, we track two key indicators: Developer feedback via thumbs-up and thumbs-down reactions on comments help us understand whether suggestions are helpful. Production signals where we measure whether flagged issues are resolved before merging. Together, these signals help ensure that Copilot code review surfaces issues that matter, and that faster merges come from confident fixes, not less scrutiny. Signal In code review, more comments don\u2019t necessarily mean a better review. Our goal isn\u2019t to maximize comment volume, but to surface issues that actually matter. In 71% of the reviews, Copilot code review surfaces actionable feedback. In the remaining 29%, the agent says nothing at all. As our ability to identify high-signal findings improves, we\u2019re also able to comment more confidently, now averaging about 5.1 comments per review without increasing review churn or lowering our quality threshold. Speed In code review, speed matters, but signal matters more. In one recent change, adopting a more advanced reasoning model improved positive feedback rates by 6%, even though review latency increased by 16%. For us, that\u2019s the right exchange. About the agentic architecture Given our new definition of good, we redeveloped our code review system. Today\u2019s agentic design can retrieve context intelligently and explore the repository to understand logic, architecture, and specific invariants. This shift alone has driven an initial 8.1% increase in positive feedback. It catches issues as it reads, not just at the end. It can maintain memory across reviews. Now, every pull request doesn\u2019t need to be an isolated event. It keeps long pull requests reviewable with an explicit plan. It reads linked issues and pull requests for extra context. Making reviews easier to navigate We moved away from pinning comments to single lines. By attaching feedback to logical code ranges, Copilot makes it easier to see what it\u2019s referring to and apply the suggested change. Instead of multiple separate comments for the same pattern error, the agent clusters them into a single, cohesive unit to reduce cognitive load. Apply suggested fixes in batches, resolving an entire class of logic bugs or style issues at once with batch autofixes.","link":"https://github.blog/ai-and-ml/github-copilot/60-million-copilot-code-reviews-and-counting/"}]
+    expected: '{"phrases":["Copilot code review grew 10X — now handles 1 in 5 code reviews on GitHub","CCR surfaces actionable feedback in 71% of reviews, averaging 5.1 comments per PR","Agentic architecture drove 8.1% increase in positive feedback by reading repo context"]}'
 
-  # --- Hacker News style input ---
+  # ── Full GitHub Blog: GHES Search Architecture (6000 chars) ──────────
+
   - maxLength: "140"
-    maxPhrasesPerArticle: "2"
+    maxPhrasesPerArticle: "3"
     items: >
-      [{"title":"Show HN: I built a Rust-based SQLite alternative that's 10x faster for reads","source":"Hacker News","time":"2026-03-06","content":"TurboQL is a new embedded database written in Rust. Benchmarks show 10x read throughput vs SQLite on YCSB workload B. MIT licensed.","link":"https://news.ycombinator.com/item?id=99999"}]
-    expected: '{"phrases":["TurboQL: Rust-based SQLite alternative with 10x read throughput on YCSB","New MIT-licensed embedded DB in Rust benchmarks 10x faster reads than SQLite"]}'
+      [{"title":"How we rebuilt the search architecture for high availability in GitHub Enterprise Server","source":"GitHub Blog","time":"Tue, 03 Mar 2026 18:45:09 +0000","content":"So much of what you interact with on GitHub depends on search \u2014 obviously the search bars and filtering experiences like the GitHub Issues page, but it is also the core of the releases page, projects page, the counts for issues and pull requests, and more. Given that search is such a core part of the GitHub platform, we\u2019ve spent the last year making it even more durable. That means less time spent managing GitHub Enterprise Server, and more time working on what your customers care most about. In recent years, GitHub Enterprise Server administrators had to be especially careful with search indexes, the special database tables optimized for searching. If they didn\u2019t follow maintenance or upgrade steps in exactly the right order, search indexes could become damaged and need repair, or they might get locked and cause problems during upgrades. Quick context if you\u2019re not running High Availability (HA) setups, they\u2019re designed to keep GitHub Enterprise Server running smoothly even if part of the system fails. You have a primary node that handles all the writes and traffic, and replica nodes that stay in sync and can take over if needed. Much of this difficulty comes from how previous versions of Elasticsearch, our search database of choice, were integrated. HA GitHub Enterprise Server installations use a leader/follower pattern. The leader (primary server) receives all the writes, updates, and traffic. Followers (replicas) are designed to be read-only. This is where Elasticsearch started running into issues. Since it couldn\u2019t support having a primary node and a replica node, GitHub engineering had to create an Elasticsearch cluster across the primary and replica nodes. Unfortunately, the problems of clustering across servers eventually began to outweigh the benefits. For example, at any point Elasticsearch could move a primary shard (responsible for receiving/validating writes) to a replica. If that replica was then taken down for maintenance, GitHub Enterprise Server could end up in a locked state. The replica would wait for Elasticsearch to be healthy before starting up, but Elasticsearch couldn\u2019t become healthy until the replica rejoined. For a number of GitHub Enterprise Server releases, engineers at GitHub tried to make this mode more stable. We implemented checks to ensure Elasticsearch was in a healthy state, as well as other processes to try and correct drifting states. We went as far as attempting to build a search mirroring system that would allow us to move away from the clustered mode. But database replication is incredibly challenging and these efforts needed consistency. What changed? After years of work, we\u2019re now able to use Elasticsearch\u2019s Cross Cluster Replication (CCR) feature to support HA GitHub Enterprise. With this mode, we\u2019re moving to use several single-node Elasticsearch clusters. Now each Enterprise server instance will operate as independent single node Elasticsearch clusters. CCR lets us share the index data between nodes in a way that is carefully controlled and natively supported by Elasticsearch. It copies data once it\u2019s been persisted to the Lucene segments (Elasticsearch\u2019s underlying data store). This ensures we\u2019re replicating data that has been durably persisted within the Elasticsearch cluster. Under the hood Elasticsearch has an auto-follow API, but it only applies to indexes created after the policy exists. GitHub Enterprise Server HA installations already have a long-lived set of indexes, so we need a bootstrap step that attaches followers to existing indexes, then enables auto-follow for anything created in the future. How to get started with CCR mode To get started using the new CCR mode, reach out to support@github.com and let them know you\u2019d like to use the new HA mode for GitHub Enterprise Server. Once you\u2019ve downloaded your new license, you\u2019ll need to set ghe-config app.elasticsearch.ccr true. With that finished, administrators can run a config-apply or an upgrade on your cluster to move to 3.19.1, which is the first release to support this new architecture. When your GitHub Enterprise Server restarts, Elasticsearch will migrate your installation to use the new replication method.","link":"https://github.blog/engineering/architecture-optimization/how-we-rebuilt-the-search-architecture-for-high-availability-in-github-enterprise-server/"}]
+    expected: '{"phrases":["GHES 3.19.1 replaces Elasticsearch clustering with Cross Cluster Replication for HA","Old GHES Elasticsearch could lock during maintenance if a primary shard moved to a replica","Enable CCR: ghe-config app.elasticsearch.ccr true then config-apply to upgrade"]}'
 
-  # --- GitHub commit input ---
-  - maxLength: "140"
-    maxPhrasesPerArticle: "2"
-    items: >
-      [{"title":"feat: add inline chat quick-fix for diagnostics (#12345)","source":"microsoft/vscode","time":"2026-03-04","content":"Adds a new code action that lets you fix lint errors and diagnostics directly from Copilot inline chat. Supports TypeScript, Python, and Java.","link":"https://github.com/microsoft/vscode/commit/abc123"}]
-    expected: '{"phrases":["VS Code: fix lint errors via Copilot inline chat — supports TS, Python, Java","New code action: Copilot inline chat quick-fix for diagnostics"]}'
+  # ── Multi-article batch with full content ────────────────────────────
 
-  # --- Multiple items in one batch ---
   - maxLength: "140"
     maxPhrasesPerArticle: "1"
     items: >
-      [{"title":"TSLA up 8% on record Q1 deliveries","source":"Yahoo Finance","time":"2026-03-06","content":"Tesla delivered 495,000 vehicles in Q1 2026, beating estimates of 460,000. Stock jumped 8% in pre-market trading.","link":""},{"title":"Severe thunderstorm warning for Broward County","source":"NWS Miami","time":"2026-03-06T14:00:00Z","content":"The National Weather Service issued a severe thunderstorm warning for Broward County until 5:00 PM EDT. Hail up to 1 inch and 60 mph wind gusts possible.","link":""}]
-    expected: '{"phrases":["TSLA +8%: Tesla delivered 495K vehicles in Q1, beating 460K estimate","Severe thunderstorm warning for Broward County — 60 mph gusts, 1-inch hail until 5 PM"]}'
+      [{"title":"60 million Copilot code reviews and counting","source":"GitHub Blog","time":"2d ago","content":"Since our initial launch of Copilot code review (CCR) last April, usage has grown 10X, now accounting for more than one in five code reviews on GitHub. In 71% of the reviews, Copilot code review surfaces actionable feedback. We are now averaging about 5.1 comments per review. The agentic architecture drove an initial 8.1% increase in positive feedback. Apply suggested fixes in batches, resolving an entire class of logic bugs or style issues at once with batch autofixes.","link":""},{"title":"How we rebuilt the search architecture for high availability in GitHub Enterprise Server","source":"GitHub Blog","time":"4d ago","content":"GitHub Enterprise Server 3.19.1 introduces Elasticsearch Cross Cluster Replication (CCR) for High Availability. Each Enterprise server instance now operates as independent single-node Elasticsearch clusters. CCR copies data once it has been persisted to the Lucene segments. To enable CCR mode set ghe-config app.elasticsearch.ccr true then run config-apply.","link":""}]
+    expected: '{"phrases":["Copilot code review grew 10X \u2014 now handles 1 in 5 reviews on GitHub with 71% actionable feedback","GHES 3.19.1 uses Elasticsearch CCR for search high availability"]}'
 
-  # --- Edge case: very short input ---
+  # ── Hacker News content ──────────────────────────────────────────────
+
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"Show HN: I built a Rust-based SQLite alternative that is 10x faster for reads","source":"Hacker News","time":"6h ago","content":"TurboQL is a new embedded database written in Rust. Benchmarks show 10x read throughput vs SQLite on YCSB workload B. Write performance is comparable. MIT licensed. No external dependencies. The on-disk format uses a log-structured merge tree with tiered compaction. Supports SQL via a lightweight query planner. Data is stored in columnar format for analytical queries. The WAL implementation uses group commit for durability with minimal write amplification.","link":"https://news.ycombinator.com/item?id=99999"}]
+    expected: '{"phrases":["TurboQL: Rust embedded DB with 10x read throughput vs SQLite using LSM-tree storage","TurboQL uses columnar format for analytics with group-commit WAL for durability"]}'
+
+  # ── VS Code commit with PR body content ──────────────────────────────
+
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"feat: add inline chat quick-fix for diagnostics (#12345)","source":"microsoft/vscode","time":"3d ago","content":"Adds a new code action that lets you fix lint errors and diagnostics directly from Copilot inline chat. Supports TypeScript, Python, and Java. The quick-fix appears as a lightbulb action in the editor gutter when Copilot detects a fixable diagnostic. One-click applies the suggested change. The implementation integrates with the existing CodeActionProvider API and registers a new CodeActionKind for Copilot-powered fixes. Tests cover single-diagnostic, multi-diagnostic, and cross-file scenarios.","link":"https://github.com/microsoft/vscode/commit/abc123"}]
+    expected: '{"phrases":["VS Code: one-click Copilot lint fix shows as lightbulb on fixable diagnostics","Copilot inline chat quick-fix supports TS, Python, Java via CodeActionProvider API"]}'
+
+  # ── Edge case: title only ────────────────────────────────────────────
+
   - maxLength: "100"
     maxPhrasesPerArticle: "1"
     items: >
-      [{"title":"Docker Desktop 5.0 released","source":"Docker Blog","time":"2026-03-01","content":"","link":"https://docker.com/blog/dd5"}]
+      [{"title":"Docker Desktop 5.0 released","source":"Docker Blog","time":"6d ago","content":"","link":"https://docker.com/blog/dd5"}]
     expected: '{"phrases":["Docker Desktop 5.0 released"]}'
 
-  # --- Edge case: content-heavy article, must distill ---
+  # ── Data-heavy: extract stats from dense content ─────────────────────
+
   - maxLength: "140"
     maxPhrasesPerArticle: "2"
     items: >
-      [{"title":"The State of JavaScript 2025 Survey Results","source":"stateofjs.com","time":"2026-01-15","content":"React remains #1 framework at 82% usage. Vite overtook webpack as the default bundler (71% vs 43%). TypeScript adoption hit 92% among respondents. Bun usage tripled year-over-year to 34%. Tailwind CSS leads styling at 67%. Testing: Vitest surpassed Jest for the first time at 51% vs 48%.","link":"https://stateofjs.com/2025"}]
-    expected: '{"phrases":["State of JS 2025: TypeScript at 92%, Vite overtakes webpack, Vitest surpasses Jest","React still #1 at 82% usage; Bun tripled to 34%; Tailwind leads styling at 67%"]}'
+      [{"title":"The State of JavaScript 2025 Survey Results","source":"stateofjs.com","time":"2mo ago","content":"The 2025 State of JavaScript survey collected responses from 23,000 developers across 150 countries. React remains the most-used framework at 82% adoption. Vite overtook webpack as the default bundler, used by 71% vs webpack at 43%. TypeScript adoption hit 92% among respondents, up from 87% in 2024. Bun usage tripled year-over-year to 34%. Tailwind CSS leads styling at 67%, up from 52%. In testing, Vitest surpassed Jest for the first time with 51% usage vs 48%. Playwright grew to 39%, nearly matching Cypress at 42%. Server-side rendering frameworks saw Next.js at 58% and Astro climbing to 28%. Edge runtime adoption doubled to 19%. Most respondents reported using AI coding assistants, with 73% using GitHub Copilot.","link":"https://stateofjs.com/2025"}]
+    expected: '{"phrases":["State of JS 2025: TypeScript at 92%, Vite overtakes webpack (71% vs 43%)","Vitest surpasses Jest (51% vs 48%); Bun tripled to 34%; 73% use Copilot"]}'
 
 evaluators:
-  # Structural: response must be valid JSON with a "phrases" array
-  - name: Valid JSON with phrases array
+  # Structural
+  - name: Valid JSON structure
     string:
       contains: '"phrases"'
-
-  - name: Contains array brackets
+  - name: Contains phrase array
     string:
       contains: "["
-
-  # Similarity: are the generated phrases close to our expected output?
+  # Semantic quality
   - name: similarity
     uses: github/similarity

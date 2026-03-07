@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+const noop = () => { /* empty */ };
+
 import {
   truncate,
   singleLine,
@@ -260,14 +263,14 @@ describe('expandHome', () => {
 // ── logInfo / logDebug ───────────────────────────────────────────────
 describe('logInfo', () => {
   it('logs when verbose is true', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'log').mockImplementation(noop);
     logInfo({ verbose: true }, 'test message');
     expect(spy).toHaveBeenCalledWith('[phrases] test message');
     spy.mockRestore();
   });
 
   it('does not log when verbose is false', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'log').mockImplementation(noop);
     logInfo({ verbose: false }, 'test message');
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
@@ -276,7 +279,7 @@ describe('logInfo', () => {
 
 describe('logDebug', () => {
   it('logs when debug is true', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'log').mockImplementation(noop);
     logDebug({ debug: true }, 'debug message');
     expect(spy).toHaveBeenCalledWith('[phrases:debug] debug message');
     spy.mockRestore();

@@ -1,4 +1,4 @@
-import type { ArticleItem, PhraseSource } from '../core/types.js';
+import type { ArticleItem, Config, PhraseSource } from '../core/types.js';
 import { fetchJson, fetchUsZipLocation, logInfo, relativeTime } from '../core/utils.js';
 
 interface UsgsFeature {
@@ -38,7 +38,7 @@ function buildEarthquakeContent(feature: UsgsFeature): string | undefined {
   return parts.length > 0 ? parts.join(' • ') : undefined;
 }
 
-export async function fetchEarthquakeArticles(config: import('../core/types.js').Config): Promise<ArticleItem[]> {
+export async function fetchEarthquakeArticles(config: Config): Promise<ArticleItem[]> {
   if (!config.earthquakes.enabled) {
     return [];
   }

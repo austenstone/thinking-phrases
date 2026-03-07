@@ -348,10 +348,10 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 
 	const isNewConfig = selectedConfigOption === '__new__';
 	const selectedConfigPath = isNewConfig ? undefined : selectedConfigOption;
-	let selectedConfig = selectedConfigPath
+	const selectedConfig = selectedConfigPath
 		? mergeConfig(DEFAULT_CONFIG, readConfigFile(resolveConfigPath(selectedConfigPath)), {})
 		: DEFAULT_CONFIG;
-	let startWithNoSourcesSelected = isNewConfig;
+	const startWithNoSourcesSelected = isNewConfig;
 
 	const selectedSources = await multiselect({
 		message: 'Which sources do you want to use?',
@@ -954,29 +954,12 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 
 	overrides.dryRun = shouldDryRun;
 
-	if (!overrides.dryRun && process.platform === 'darwin') {
+	// Always collect scheduler config upfront so the user isn't blocked after a long run
+	if (process.platform === 'darwin') {
 		overrides.installScheduler = true;
 		overrides.schedulerConfigPath = selectedConfigPath;
-
-		const existingInterval = String(installedScheduler?.intervalSeconds ?? 300);
-		const intervalInput = await text({
-			message: installedScheduler?.installed
-				? 'How often should the scheduler run? Enter interval in seconds'
-				: 'How often should it run? Enter interval in seconds',
-			placeholder: '300',
-			initialValue: existingInterval,
-			validate(value) {
-				const parsed = Number(keepExistingValue(value, existingInterval));
-				return Number.isInteger(parsed) && parsed > 0 ? undefined : 'Enter a positive integer in seconds.';
-			},
-		});
-
-		if (isCancel(intervalInput)) {
-			return cancelFlow('Interactive run cancelled. No settings were changed.');
-		}
-
-		overrides.schedulerIntervalSeconds = Number(keepExistingValue(intervalInput, existingInterval));
-	} else if (!overrides.dryRun && process.platform !== 'darwin') {
+		overrides.schedulerIntervalSeconds = installedScheduler?.intervalSeconds ?? 60;
+	} else if (!overrides.dryRun) {
 		note(
 			pc.dim('Scheduler install is currently only wired for macOS launchd. Settings will still be written.'),
 			'Scheduler',
@@ -997,7 +980,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 			`${pc.bold('Models')}   ${overrides.githubModels?.enabled ? pc.magenta('enabled') : pc.dim('disabled')}`,
 				`${pc.bold('Mode')}     ${pc.yellow(overrides.mode ?? selectedConfig.mode)}`,
 			`${pc.bold('Action')}   ${overrides.dryRun ? pc.blue('preview only') : pc.green('write settings')}`,
-			`${pc.bold('Schedule')} ${overrides.installScheduler ? pc.green(`every ${overrides.schedulerIntervalSeconds ?? 300}s`) : pc.dim('not installing')}`,
+			`${pc.bold('Schedule')} ${overrides.installScheduler ? pc.green(`every ${overrides.schedulerIntervalSeconds ?? 60}s (per-source intervals in config)`) : pc.dim('not installing')}`,
 			`${pc.bold('Config')}   ${isNewConfig ? pc.cyan('new config (auto-name if blank)') : pc.cyan(selectedConfigPath ?? '')}`,
 		].join('\n'),
 		'Run summary',
@@ -1044,26 +1027,9 @@ export async function promptForConfigName(config: Pick<Config, 'feeds' | 'stockQ
 export async function promptForDynamicSchedulerAfterDryRun(): Promise<Pick<CliOverrides, 'installScheduler' | 'schedulerIntervalSeconds'> | null> {
 	const installedScheduler = process.platform === 'darwin' ? getInstalledSchedulerInfo() : null;
 
-	const existingInterval = String(installedScheduler?.intervalSeconds ?? 300);
-	const intervalInput = await text({
-		message: installedScheduler?.installed
-			? 'How often should the scheduler run? Enter interval in seconds'
-			: 'How often should it run? Enter interval in seconds',
-		placeholder: '300',
-		initialValue: existingInterval,
-		validate(value) {
-			const parsed = Number(keepExistingValue(value, existingInterval));
-			return Number.isInteger(parsed) && parsed > 0 ? undefined : 'Enter a positive integer in seconds.';
-		},
-	});
-
-	if (isCancel(intervalInput)) {
-		return null;
-	}
-
 	return {
 		installScheduler: true,
-		schedulerIntervalSeconds: Number(keepExistingValue(intervalInput, existingInterval)),
+		schedulerIntervalSeconds: installedScheduler?.intervalSeconds ?? 60,
 	};
 }
 

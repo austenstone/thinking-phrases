@@ -5,7 +5,7 @@ import type { InstalledSchedulerInfo } from './types.js';
 
 export const SCHEDULER_LABEL = 'com.austenstone.thinking-phrases.rss';
 export const INSTALLED_PLIST_PATH = join(homedir(), 'Library', 'LaunchAgents', `${SCHEDULER_LABEL}.plist`);
-export const DEFAULT_SCHEDULER_INTERVAL_SECONDS = 300;
+export const DEFAULT_SCHEDULER_INTERVAL_SECONDS = 60;
 
 const IGNORED_DIRECTORIES = new Set(['.git', 'dist', 'node_modules', 'out']);
 

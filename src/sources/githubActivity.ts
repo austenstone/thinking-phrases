@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { formatGitHubCommitPhrase, formatGitHubFeedPhrase } from '../core/phraseFormats.js';
 import type { ArticleItem, Config, GitHubActivityConfig, GitHubFeedKind, PhraseFormatTemplates, PhraseSource } from '../core/types.js';
-import { USER_AGENT, fetchJson, fetchText, logDebug, logInfo, relativeTime, singleLine, truncate } from '../core/utils.js';
+import { USER_AGENT, fetchJson, fetchText, logDebug, logInfo, relativeTime, singleLine } from '../core/utils.js';
 import { hydrateArticleContent, parseFeedArticles } from './rss.js';
 
 interface GitHubCommitListItem {
@@ -25,14 +25,14 @@ interface GitHubCommitDetail extends GitHubCommitListItem {
     deletions?: number;
     total?: number;
   };
-  files?: Array<{
+  files?: {
     filename?: string;
     status?: string;
     additions?: number;
     deletions?: number;
     changes?: number;
     patch?: string;
-  }>;
+  }[];
 }
 
 interface GitHubCommitContext {
@@ -285,11 +285,7 @@ function repoDisplayName(repoLabel: string): string {
   return parts.at(-1) ?? trimmed;
 }
 
-function buildCommitContent(detail: GitHubCommitDetail, config: Config): string | undefined {
-  return buildCommitContentFromContext({ detail }, config);
-}
-
-function buildCommitContentFromContext(context: GitHubCommitContext, config: Config): string | undefined {
+function buildCommitContentFromContext(context: GitHubCommitContext, _config: Config): string | undefined {
   const { detail, diffText } = context;
   const files = detail.files ?? [];
   const summaryBits = [
@@ -622,7 +618,7 @@ async function fetchGitHubFeedArticles(config: Config): Promise<ArticleItem[]> {
     logInfo(config, `Falling back to GitHub organization events from ${eventsUrl}`);
     const events = await fetchGitHubJson<GitHubOrgEvent[]>(eventsUrl, token);
     return events
-      .map(buildOrganizationEventArticle)
+      .map((event) => buildOrganizationEventArticle(event))
       .filter((article): article is ArticleItem => Boolean(article))
       .slice(0, config.githubActivity.maxItems);
   }

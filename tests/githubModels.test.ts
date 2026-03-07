@@ -117,8 +117,8 @@ describe('chunkArticles', () => {
   });
 
   it('splits on character limit', () => {
-    // Create articles with very large content to force character-based splitting
-    const bigContent = 'x'.repeat(25_000);
+    // Create articles large enough to exceed the per-chunk character budget
+    const bigContent = 'x'.repeat(50_000);
     const articles = [
       makeArticle('Big One', bigContent),
       makeArticle('Big Two', bigContent),

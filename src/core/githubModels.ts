@@ -8,7 +8,7 @@ interface BuildModelArticlePhrasesOptions {
   onProgress?: (message: string) => void;
 }
 
-const GITHUB_MODELS_ENDPOINT = 'https://models.github.ai/inference';
+const DEFAULT_ENDPOINT = 'https://models.github.ai/inference';
 
 function getGitHubModelsToken(config: GitHubModelsConfig): string | undefined {
   const envToken = process.env[config.tokenEnvVar] ?? process.env.GITHUB_TOKEN;
@@ -72,7 +72,7 @@ export function extractModelPhrases(input: string): string[] {
     .split(/\r?\n/u)
     .map(line => line.trim())
     .filter(Boolean)
-    .map(line => line.replace(/^[\[\]",*-•\s]+/gu, '').trim())
+    .map(line => line.replace(/^[[\]",*\-•\s]+/gu, '').trim())
     .filter(Boolean);
 }
 
@@ -84,25 +84,46 @@ async function runGitHubModelsPrompt(config: GitHubModelsConfig, content: string
     );
   }
 
-  const client = ModelClient(GITHUB_MODELS_ENDPOINT, new AzureKeyCredential(token));
-  const response = await client.path('/chat/completions').post({
-    body: {
-      model: config.model,
-      messages: [{ role: 'user', content }],
-      temperature: config.temperature,
-      max_tokens: config.maxTokens,
-      response_format: { type: 'json_object' },
-    },
-  });
+  const endpoint = config.endpoint || DEFAULT_ENDPOINT;
+  const client = ModelClient(endpoint, new AzureKeyCredential(token));
+  const isReasoningModel = /\b(o1|o3|o4|gpt-5)\b/iu.test(config.model);
 
-  if (isUnexpected(response)) {
-    const errorBody = response.body as { error?: { message?: string } };
-    throw new Error(errorBody.error?.message ?? 'GitHub Models request failed.');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- response type varies by endpoint; we check with isUnexpected below
+  let response: any;
+  try {
+    response = await client.path('/chat/completions').post({
+      body: {
+        model: config.model,
+        messages: [{ role: 'user', content }],
+        // Reasoning models (o1/o3/o4/gpt-5) only accept temperature=1
+        ...(isReasoningModel ? {} : { temperature: config.temperature }),
+        response_format: { type: 'json_object' },
+        // Reasoning models require max_completion_tokens; others use max_tokens
+        ...(isReasoningModel
+          ? { max_completion_tokens: config.maxTokens } as Record<string, unknown>
+          : { max_tokens: config.maxTokens }),
+      },
+    });
+  } catch (error: unknown) {
+    // The Azure SDK throws a SyntaxError when the API returns raw text (e.g. 429 rate limit).
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('Too many requests') || message.includes('429')) {
+      throw new Error('GitHub Models 429: rate limited — try again shortly');
+    }
+    throw error;
   }
 
-  const text = (response.body as GitHubModelsResponse).choices?.[0]?.message?.content?.trim();
+  if (isUnexpected(response)) {
+    const errorBody = response.body as { error?: { message?: string; code?: string; type?: string } };
+    const status = response.status;
+    const detail = errorBody.error?.message ?? JSON.stringify(errorBody);
+    throw new Error(`GitHub Models ${status}: ${detail}`);
+  }
+
+  const body = response.body as GitHubModelsResponse;
+  const text = body.choices?.[0]?.message?.content?.trim();
   if (!text) {
-    throw new Error('GitHub Models response did not include content.');
+    throw new Error(`GitHub Models response did not include content. Status: ${response.status}, body: ${JSON.stringify(body).slice(0, 300)}`);
   }
 
   return text;
@@ -112,7 +133,10 @@ export function chunkArticles(articles: ArticleItem[], config: GitHubModelsConfi
   const chunks: ArticleItem[][] = [];
   const estimatedPerChunk = Math.max(1, Math.floor(config.maxTokens / Math.max(80, config.maxPhrasesPerArticle * 80)));
   const defaultChunkSize = Math.max(1, Math.min(config.maxInputItems, estimatedPerChunk));
-  const maxCharactersPerChunk = 24_000;
+  // Derive character budget from the model's input token limit.
+  // ~4 chars per token, minus headroom for instruction/JSON envelope and output.
+  const tokenBudget = config.maxInputTokens - config.maxTokens;
+  const maxCharactersPerChunk = Math.max(4000, (tokenBudget * 4) - 2000);
 
   let currentChunk: ArticleItem[] = [];
   let currentCharacters = 0;
@@ -163,53 +187,70 @@ export async function buildModelArticlePhrases(
   const chunks = chunkArticles(articles, config.githubModels);
   let completedChunks = 0;
 
-  options.onProgress?.(`Generating phrases with GitHub Models (${chunks.length} batch${chunks.length === 1 ? '' : 'es'} in parallel)`);
+  options.onProgress?.(`Generating phrases with GitHub Models (${chunks.length} batch${chunks.length === 1 ? '' : 'es'})`);
 
-  const settledChunkResults = await Promise.allSettled(
-    chunks.map(async (chunk, index) => {
-      const payload = JSON.stringify({
-        instruction: config.githubModels.systemPrompt ?? [
-          'Create concise VS Code thinking phrases from these normalized content items.',
-          'Return JSON only in this shape: {"phrases":["..."]}.',
-          'Each phrase must be factual, concrete, and at most maxLength characters.',
-          'You may emit multiple phrases for one item when it has multiple distinct takeaways.',
-          'Return at most maxPhrasesPerArticle phrases per item.',
-          'Prefer concrete details like numbers, locations, dates, features, examples, or outcomes.',
-          'Avoid vague rewrites of the headline.',
-        ].join(' '),
-        maxLength: config.phraseFormatting.maxLength,
-        maxPhrasesPerArticle: config.githubModels.maxPhrasesPerArticle,
-        items: chunk.map(article => ({
-          title: article.title ?? '',
-          source: article.source ?? '',
-          time: article.time ?? '',
-          content: article.articleContent ?? article.content ?? '',
-          link: article.link ?? '',
-        })),
-      });
+  const processChunk = async (chunk: ArticleItem[], index: number): Promise<string[]> => {
+    const contentBudget = config.githubModels.maxArticleContentLength;
+    const payload = JSON.stringify({
+      instruction: config.githubModels.systemPrompt ?? [
+        'Create concise VS Code thinking phrases from these normalized content items.',
+        'Return JSON only in this shape: {"phrases":["..."]}.',
+        'Each phrase must be factual, concrete, and at most maxLength characters.',
+        'You may emit multiple phrases for one item when it has multiple distinct takeaways.',
+        'Return at most maxPhrasesPerArticle phrases per item.',
+        'Prefer concrete details like numbers, locations, dates, features, examples, or outcomes.',
+        'Avoid vague rewrites of the headline.',
+      ].join(' '),
+      maxLength: config.phraseFormatting.maxLength,
+      maxPhrasesPerArticle: config.githubModels.maxPhrasesPerArticle,
+      items: chunk.map(article => ({
+        title: article.title ?? '',
+        source: article.source ?? '',
+        time: article.time ?? '',
+        content: (article.articleContent ?? article.content ?? '').slice(0, contentBudget),
+        link: article.link ?? '',
+      })),
+    });
 
-      logDebug(config, `Sending ${chunk.length} items to GitHub Models for chunk ${index + 1}/${chunks.length}`);
-      const responseText = await runGitHubModelsPrompt(config.githubModels, payload);
-      logDebug(config, `Model response preview: ${singleLine(responseText, 220)}`);
+    logDebug(config, `Sending ${chunk.length} items (${payload.length} chars) to GitHub Models for chunk ${index + 1}/${chunks.length}`);
+    const responseText = await runGitHubModelsPrompt(config.githubModels, payload);
+    logDebug(config, `Model response preview: ${singleLine(responseText, 220)}`);
 
-      completedChunks += 1;
-      options.onProgress?.(`Generated GitHub Models phrases (${completedChunks}/${chunks.length})`);
+    completedChunks += 1;
+    options.onProgress?.(`Generated GitHub Models phrases (${completedChunks}/${chunks.length})`);
 
-      return extractModelPhrases(responseText)
-        .map(phrase => singleLine(decodeHtmlEntities(phrase), config.phraseFormatting.maxLength))
-        .filter(Boolean);
-    }),
-  );
+    return extractModelPhrases(responseText)
+      .map(phrase => singleLine(decodeHtmlEntities(phrase), config.phraseFormatting.maxLength))
+      .filter(Boolean);
+  };
 
-  const rejectedChunk = settledChunkResults.find(
-    (result): result is PromiseRejectedResult => result.status === 'rejected',
-  );
+  // Process batches with bounded concurrency
+  const maxConcurrency = config.githubModels.maxConcurrency;
+  const allPhrases: string[] = [];
+  let lastError: unknown;
 
-  if (rejectedChunk) {
-    throw rejectedChunk.reason;
+  for (let start = 0; start < chunks.length; start += maxConcurrency) {
+    const batch = chunks.slice(start, start + maxConcurrency);
+    const settledResults = await Promise.allSettled(
+      batch.map((chunk, batchIndex) => processChunk(chunk, start + batchIndex)),
+    );
+
+    for (const result of settledResults) {
+      if (result.status === 'fulfilled') {
+        allPhrases.push(...result.value);
+      } else {
+        completedChunks += 1;
+        lastError = result.reason;
+        const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        logDebug(config, `Chunk failed: ${message}`);
+        options.onProgress?.(`GitHub Models batch failed (${completedChunks}/${chunks.length}): ${message}`);
+      }
+    }
   }
 
-  return dedupePhrases(
-    settledChunkResults.flatMap(result => (result.status === 'fulfilled' ? result.value : [])),
-  );
+  if (allPhrases.length === 0 && lastError) {
+    throw lastError;
+  }
+
+  return dedupePhrases(allPhrases);
 }

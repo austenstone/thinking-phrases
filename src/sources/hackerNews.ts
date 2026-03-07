@@ -1,5 +1,5 @@
 import { formatHackerNewsPhrase } from '../core/phraseFormats.js';
-import type { ArticleItem, PhraseSource } from '../core/types.js';
+import type { ArticleItem, Config, PhraseSource } from '../core/types.js';
 import { fetchJson, logInfo, relativeTime, stripHtml } from '../core/utils.js';
 
 interface HackerNewsItem {
@@ -27,7 +27,7 @@ function buildHackerNewsLink(id: number, explicitUrl?: string): string {
   return explicitUrl?.trim() || `https://news.ycombinator.com/item?id=${id}`;
 }
 
-export async function fetchHackerNewsArticles(config: import('../core/types.js').Config): Promise<ArticleItem[]> {
+export async function fetchHackerNewsArticles(config: Config): Promise<ArticleItem[]> {
   if (!config.hackerNews.enabled) {
     return [];
   }

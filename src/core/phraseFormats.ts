@@ -73,7 +73,7 @@ export function formatArticlePhrase(
   opts?: ArticlePhraseOpts,
 ): string {
   if (opts?.template) {
-    return applyFormatTemplate(opts.template, vars);
+    return applyFormatTemplate(opts.template, { ...vars });
   }
 
   const parts: string[] = [];
@@ -106,7 +106,7 @@ export interface HackerNewsPhraseOpts {
 /** Default: "HN: Title — +342 — 3h ago" */
 export function formatHackerNewsPhrase(vars: HackerNewsPhraseVars, opts?: HackerNewsPhraseOpts): string {
   if (opts?.template) {
-    return applyFormatTemplate(opts.template, vars);
+    return applyFormatTemplate(opts.template, { ...vars });
   }
 
   return [`HN: ${vars.title}`, vars.score, vars.time]
@@ -130,7 +130,7 @@ export interface StockPhraseOpts {
 /** Default: "MSFT $425.30 ▲ 1.25% 🟢" */
 export function formatStockPhrase(vars: StockPhraseVars, opts?: StockPhraseOpts): string {
   if (opts?.template) {
-    return applyFormatTemplate(opts.template, vars);
+    return applyFormatTemplate(opts.template, { ...vars });
   }
 
   return [vars.symbol, vars.price, vars.change, vars.market]
@@ -156,7 +156,7 @@ export interface GitHubCommitPhraseOpts {
 /** Default: "Fix null check (+12 -3) vscode@a1b2c3d - @octocat 2h ago" */
 export function formatGitHubCommitPhrase(vars: GitHubCommitPhraseVars, opts?: GitHubCommitPhraseOpts): string {
   if (opts?.template) {
-    return applyFormatTemplate(opts.template, vars);
+    return applyFormatTemplate(opts.template, { ...vars });
   }
 
   const metadata = [
@@ -184,7 +184,7 @@ export interface GitHubFeedPhraseOpts {
 /** Default: "@octocat pushed to main — 1h ago" */
 export function formatGitHubFeedPhrase(vars: GitHubFeedPhraseVars, opts?: GitHubFeedPhraseOpts): string {
   if (opts?.template) {
-    return applyFormatTemplate(opts.template, vars);
+    return applyFormatTemplate(opts.template, { ...vars });
   }
 
   const titlePart = vars.handle

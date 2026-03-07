@@ -7,11 +7,11 @@ import { DEFAULT_CONFIG, mergeConfig, parseArgs, readConfigFile, resolveConfigPa
 import { buildModelArticlePhrases } from './githubModels.js';
 import {
   promptForConfigName,
-  promptForDynamicSchedulerAfterDryRun,
   promptForInteractiveOverrides,
   promptForPostDryRunAction,
   promptForStaticSchedulerAfterDryRun,
 } from './interactive.js';
+import { cacheModelResults, getAllStoredPhrases, isSourceStale, markSourceFetched, partitionArticlesByModelCache, storePhrases } from './phraseCache.js';
 import { DEFAULT_SCHEDULER_INTERVAL_SECONDS, formatConfigPathForDisplay, getInstalledSchedulerInfo } from './scheduler.js';
 import { dynamicSources } from './sourceCatalog.js';
 import { getStaticPackByPath } from './staticPacks.js';
@@ -19,6 +19,7 @@ import { TaskHealthTracker } from './taskHealth.js';
 import { formatArticlePhrase } from './phraseFormats.js';
 import type { ArticleItem, Config } from './types.js';
 import { dedupePhrases, loadDotEnv, logInfo, resolveSettingsPath, truncate } from './utils.js';
+import { hydrateArticleContent } from '../sources/rss.js';
 import { buildStockPhrase } from '../sources/stocks.js';
 import { removeVsCodeThinkingPhrases, writeVsCodeSettings } from '../sinks/vscodeSettings.js';
 
@@ -280,63 +281,111 @@ export async function runDynamicPhrases(): Promise<void> {
 
     try {
       const enabledSources = dynamicSources.filter(source => source.isEnabled(config));
+      // In dry-run or interactive mode, fetch everything regardless of intervals
+      const respectIntervals = !dryRun && !isInteractive;
+      const sourcesToFetch = respectIntervals
+        ? enabledSources.filter(source => {
+            const stale = isSourceStale(source.type, config);
+            if (!stale) {
+              logInfo(config, `Skipping ${source.type} — interval not elapsed`);
+            }
+
+            return stale;
+          })
+        : enabledSources;
+
       healthTracker.setSources(enabledSources.map(source => source.type));
-      healthTracker.setPhase('fetching-sources', `Running ${enabledSources.length} dynamic source${enabledSources.length === 1 ? '' : 's'}`);
-      logInfo(config, `Running ${enabledSources.length} dynamic source(s)`);
+      healthTracker.setPhase('fetching-sources', `Running ${sourcesToFetch.length} of ${enabledSources.length} source${enabledSources.length === 1 ? '' : 's'}`);
+      logInfo(config, `Running ${sourcesToFetch.length} of ${enabledSources.length} enabled source(s) (${enabledSources.length - sourcesToFetch.length} skipped — not yet stale)`);
 
-      let phrases: string[];
+      startInteractiveProgress(`Fetching ${sourcesToFetch.length} dynamic source${sourcesToFetch.length === 1 ? '' : 's'}`);
+      const sourceResults = await Promise.all(
+        sourcesToFetch.map(async source => {
+          healthTracker.startSource(source.type);
+          try {
+            const items = await source.fetch(config);
+            markSourceFetched(source.type);
+            healthTracker.completeSource(source.type, items.length);
+            return { type: source.type, items };
+          } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            healthTracker.failSource(source.type, message);
+            throw error;
+          }
+        }),
+      );
 
-      startInteractiveProgress(`Fetching ${enabledSources.length} dynamic source${enabledSources.length === 1 ? '' : 's'}`);
-      const sourceItems = (
-        await Promise.all(
-          enabledSources.map(async source => {
-            healthTracker.startSource(source.type);
+      // Build phrases per-source and persist to the phrase store
+      let totalArticles = 0;
+      let totalStocks = 0;
+      for (const { type, items } of sourceResults) {
+        const articles = items.filter((item): item is ArticleItem => item.type === 'article');
+        const stocks = items.filter(item => item.type === 'stock');
+        totalArticles += articles.length;
+        totalStocks += stocks.length;
+
+        startInteractiveProgress(`Preparing ${items.length} item${items.length === 1 ? '' : 's'} from ${type}`);
+        healthTracker.setPhase('formatting-phrases', `Preparing ${items.length} item${items.length === 1 ? '' : 's'} from ${type}`);
+
+        const stockPhrases = dedupePhrases(stocks.map(stock => buildStockPhrase(stock, config)));
+
+        const hydratedArticles = config.githubModels.enabled && config.githubModels.fetchArticleContent
+          ? await hydrateArticleContent(articles, config)
+          : articles;
+
+        const fallbackArticlePhrases = buildBasicArticlePhrases(hydratedArticles, config);
+        let articlePhrases: string[];
+        if (config.githubModels.enabled && hydratedArticles.length > 0) {
+          const { uncached, cachedPhrases } = partitionArticlesByModelCache(hydratedArticles, config);
+          if (uncached.length === 0) {
+            logInfo(config, `All ${type} articles already in model cache — skipping GitHub Models API`);
+            articlePhrases = cachedPhrases.length > 0 ? cachedPhrases : fallbackArticlePhrases;
+          } else {
             try {
-              const items = await source.fetch(config);
-              healthTracker.completeSource(source.type, items.length);
-              return items;
+              const newPhrases = await buildModelArticlePhrases(uncached, config, {
+                onProgress: (message: string) => {
+                  startInteractiveProgress(message);
+                  healthTracker.setPhase('formatting-phrases', message);
+                },
+              });
+              cacheModelResults(uncached, newPhrases, config);
+              articlePhrases = [...cachedPhrases, ...newPhrases];
             } catch (error: unknown) {
               const message = error instanceof Error ? error.message : String(error);
-              healthTracker.failSource(source.type, message);
-              throw error;
+              const warning = `GitHub Models formatting skipped for ${type} — ${message}`;
+              console.warn(warning);
+              healthTracker.addWarning(warning);
+              startInteractiveProgress('GitHub Models unavailable, falling back to feed phrases');
+              healthTracker.setPhase('formatting-phrases', 'GitHub Models unavailable, falling back to feed phrases');
+              articlePhrases = cachedPhrases.length > 0 ? [...cachedPhrases, ...fallbackArticlePhrases] : fallbackArticlePhrases;
             }
-          }),
-        )
-      ).flat();
-      const articles = sourceItems.filter((item): item is ArticleItem => item.type === 'article');
-      const stocks = sourceItems.filter(item => item.type === 'stock');
+          }
+        } else {
+          articlePhrases = fallbackArticlePhrases;
+        }
 
-      startInteractiveProgress(`Preparing ${sourceItems.length} fetched item${sourceItems.length === 1 ? '' : 's'}`);
-      healthTracker.setPhase('formatting-phrases', `Preparing ${sourceItems.length} fetched item${sourceItems.length === 1 ? '' : 's'}`);
-      const stockPhrases = dedupePhrases(stocks.map(stock => buildStockPhrase(stock, config)));
-      const fallbackArticlePhrases = buildBasicArticlePhrases(articles, config);
-      const articlePhrases = config.githubModels.enabled && articles.length > 0
-        ? await buildModelArticlePhrases(articles, config, {
-            onProgress: (message: string) => {
-              startInteractiveProgress(message);
-              healthTracker.setPhase('formatting-phrases', message);
-            },
-          }).catch((error: unknown) => {
-            const message = error instanceof Error ? error.message : String(error);
-            const warning = `GitHub Models formatting skipped — ${message}`;
-            console.warn(warning);
-            healthTracker.addWarning(warning);
-            startInteractiveProgress('GitHub Models unavailable, falling back to feed phrases');
-            healthTracker.setPhase('formatting-phrases', 'GitHub Models unavailable, falling back to feed phrases');
-            return fallbackArticlePhrases;
-          })
-        : fallbackArticlePhrases;
+        const sourcePhrases = dedupePhrases([...stockPhrases, ...articlePhrases]);
+        storePhrases(type, sourcePhrases);
+        logInfo(config, `Stored ${sourcePhrases.length} phrases for ${type}`);
+      }
 
-      phrases = dedupePhrases([...stockPhrases, ...articlePhrases]);
+      // Merge all stored phrases (freshly fetched + retained from previous runs)
+      const phrases = dedupePhrases(getAllStoredPhrases()).slice(0, config.limit);
       stopInteractiveProgress(dryRun ? `Dry run ready — generated ${phrases.length} phrases` : `Generated ${phrases.length} phrases`);
+      if (phrases.length === 0 && sourcesToFetch.length === 0) {
+        logInfo(config, 'All sources still fresh — nothing to update this cycle');
+        healthTracker.succeed({ sourceCount: 0, articleCount: 0, stockCount: 0, phraseCount: 0 }, 'All sources still fresh');
+        return;
+      }
+
       if (phrases.length === 0) {
         throw new Error('No thinking phrases were generated from the configured sources.');
       }
 
       const summary = {
         sourceCount: enabledSources.length,
-        articleCount: articles.length,
-        stockCount: stocks.length,
+        articleCount: totalArticles,
+        stockCount: totalStocks,
         phraseCount: phrases.length,
       };
 
@@ -366,16 +415,8 @@ export async function runDynamicPhrases(): Promise<void> {
 
         dryRun = false;
         healthTracker.setDryRun(false);
-        if (process.platform === 'darwin') {
-          const schedulerOverrides = await promptForDynamicSchedulerAfterDryRun();
-          if (!schedulerOverrides) {
-            return;
-          }
-
-          installScheduler = Boolean(schedulerOverrides.installScheduler);
-          schedulerIntervalSeconds = schedulerOverrides.schedulerIntervalSeconds ?? schedulerIntervalSeconds;
-          config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
-        }
+        // Scheduler config was already collected upfront in promptForInteractiveOverrides
+        config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
 
         outro(pc.green('Installing dynamic phrases…'));
       }

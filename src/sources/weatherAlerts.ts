@@ -1,5 +1,5 @@
 import { formatWeatherNoAlertsPhrase } from '../core/phraseFormats.js';
-import type { ArticleItem, PhraseSource, WeatherSeverity } from '../core/types.js';
+import type { ArticleItem, Config, PhraseSource, WeatherSeverity } from '../core/types.js';
 import { fetchJson, fetchUsZipLocation, logInfo, relativeTime, truncate } from '../core/utils.js';
 
 interface NwsPointResponse {
@@ -100,7 +100,7 @@ function buildNoAlertsArticle(context: WeatherLookupContext): ArticleItem {
   };
 }
 
-export async function fetchWeatherAlertArticles(config: import('../core/types.js').Config): Promise<ArticleItem[]> {
+export async function fetchWeatherAlertArticles(config: Config): Promise<ArticleItem[]> {
   if (!config.weatherAlerts.enabled) {
     return [];
   }

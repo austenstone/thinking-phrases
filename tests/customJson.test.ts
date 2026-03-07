@@ -129,3 +129,109 @@ describe('fetchCustomJsonArticles', () => {
     expect(result).toHaveLength(3);
   });
 });
+
+// ── Multiple Custom JSON Sources ─────────────────────────────────────
+describe('fetchCustomJsonArticles with customJsonSources', () => {
+  it('fetches from multiple sources', async () => {
+    const api1Data = [{ title: 'API 1 Item', url: 'https://api1.com/1' }];
+    const api2Data = [{ title: 'API 2 Item', url: 'https://api2.com/1' }];
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes('api1')) {
+        return new Response(JSON.stringify(api1Data));
+      }
+      return new Response(JSON.stringify(api2Data));
+    });
+
+    const config: Config = {
+      ...DEFAULT_CONFIG,
+      customJson: { ...DEFAULT_CONFIG.customJson, enabled: false },
+      customJsonSources: [
+        { ...DEFAULT_CONFIG.customJson, enabled: true, url: 'https://api1.com/data', titleField: 'title', linkField: 'url', maxItems: 5 },
+        { ...DEFAULT_CONFIG.customJson, enabled: true, url: 'https://api2.com/data', titleField: 'title', linkField: 'url', maxItems: 5 },
+      ],
+    };
+
+    const result = await fetchCustomJsonArticles(config);
+    expect(result).toHaveLength(2);
+    expect(result[0].title).toBe('API 1 Item');
+    expect(result[1].title).toBe('API 2 Item');
+  });
+
+  it('merges primary customJson with customJsonSources', async () => {
+    const primaryData = [{ title: 'Primary Item' }];
+    const extraData = [{ title: 'Extra Item' }];
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes('primary')) {
+        return new Response(JSON.stringify(primaryData));
+      }
+      return new Response(JSON.stringify(extraData));
+    });
+
+    const config: Config = {
+      ...DEFAULT_CONFIG,
+      customJson: { ...DEFAULT_CONFIG.customJson, enabled: true, url: 'https://primary.com/data', titleField: 'title', maxItems: 5 },
+      customJsonSources: [
+        { ...DEFAULT_CONFIG.customJson, enabled: true, url: 'https://extra.com/data', titleField: 'title', maxItems: 5 },
+      ],
+    };
+
+    const result = await fetchCustomJsonArticles(config);
+    expect(result).toHaveLength(2);
+    expect(result[0].title).toBe('Primary Item');
+    expect(result[1].title).toBe('Extra Item');
+  });
+
+  it('skips disabled sources in customJsonSources', async () => {
+    const enabledData = [{ title: 'Enabled Item' }];
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(enabledData)),
+    );
+
+    const config: Config = {
+      ...DEFAULT_CONFIG,
+      customJson: { ...DEFAULT_CONFIG.customJson, enabled: false },
+      customJsonSources: [
+        { ...DEFAULT_CONFIG.customJson, enabled: false, url: 'https://disabled.com/data', titleField: 'title', maxItems: 5 },
+        { ...DEFAULT_CONFIG.customJson, enabled: true, url: 'https://enabled.com/data', titleField: 'title', maxItems: 5 },
+      ],
+    };
+
+    const result = await fetchCustomJsonArticles(config);
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Enabled Item');
+  });
+
+  it('returns empty when all sources disabled', async () => {
+    const config: Config = {
+      ...DEFAULT_CONFIG,
+      customJson: { ...DEFAULT_CONFIG.customJson, enabled: false },
+      customJsonSources: [
+        { ...DEFAULT_CONFIG.customJson, enabled: false, url: 'https://disabled.com', titleField: 'title', maxItems: 5 },
+      ],
+    };
+
+    const result = await fetchCustomJsonArticles(config);
+    expect(result).toEqual([]);
+  });
+
+  it('works with empty customJsonSources array', async () => {
+    const primaryData = [{ title: 'Only Primary' }];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(primaryData)),
+    );
+
+    const config: Config = {
+      ...DEFAULT_CONFIG,
+      customJson: { ...DEFAULT_CONFIG.customJson, enabled: true, url: 'https://primary.com', titleField: 'title', maxItems: 5 },
+      customJsonSources: [],
+    };
+
+    const result = await fetchCustomJsonArticles(config);
+    expect(result).toHaveLength(1);
+  });
+});

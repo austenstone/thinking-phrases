@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { earthquakeSource } from '../src/sources/earthquakes.js';
 import { weatherAlertsSource } from '../src/sources/weatherAlerts.js';
 import { DEFAULT_CONFIG } from '../src/core/config.js';
-import type { Config } from '../src/core/types.js';
+import type { ArticleItem, Config } from '../src/core/types.js';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -71,9 +71,10 @@ describe('earthquakeSource', () => {
 
     const result = await earthquakeSource.fetch(config);
     expect(result).toHaveLength(2);
-    expect(result[0].title).toContain('M5.2');
-    expect(result[0].source).toBe('USGS Earthquakes');
-    expect(result[0].link).toContain('earthquake.usgs.gov');
+    const first = result[0] as ArticleItem;
+    expect(first.title).toContain('M5.2');
+    expect(first.source).toBe('USGS Earthquakes');
+    expect(first.link).toContain('earthquake.usgs.gov');
   });
 });
 
@@ -142,8 +143,9 @@ describe('weatherAlertsSource', () => {
     const result = await weatherAlertsSource.fetch(config);
     // Only Extreme severity passes "severe" minimum
     expect(result).toHaveLength(1);
-    expect(result[0].title).toContain('Tornado Warning');
-    expect(result[0].source).toBe('NWS Alerts');
+    const alert = result[0] as ArticleItem;
+    expect(alert.title).toContain('Tornado Warning');
+    expect(alert.source).toBe('NWS Alerts');
   });
 
   it('returns no-alerts article when no results match', async () => {
@@ -164,6 +166,6 @@ describe('weatherAlertsSource', () => {
 
     const result = await weatherAlertsSource.fetch(config);
     expect(result).toHaveLength(1);
-    expect(result[0].title).toContain('No active alerts');
+    expect((result[0] as ArticleItem).title).toContain('No active alerts');
   });
 });

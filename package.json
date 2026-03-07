@@ -46,6 +46,8 @@
     "phrases:schedule": "zsh scripts/install-thinking-phrases-scheduler.zsh",
     "phrases:unschedule": "zsh scripts/uninstall-thinking-phrases-scheduler.zsh",
     "phrases:trigger": "zsh scripts/trigger-thinking-phrases-scheduler.zsh",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -61,9 +63,12 @@
     "yahoo-finance2": "^3.13.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/json-schema": "^7.0.15",
     "@types/node": "^25.3.5",
+    "eslint": "^9.39.4",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.56.1",
     "vitest": "^3.2.4"
   },
   "engines": {

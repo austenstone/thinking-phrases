@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { parseFeedArticles, hydrateArticleContent } from '../src/sources/rss.js';
+import { parseFeedArticles } from '../src/sources/rss.js';
 import type { ArticleItem, FeedConfig } from '../src/core/types.js';
 
 // ── parseFeedArticles (RSS 2.0) ──────────────────────────────────────
@@ -110,7 +110,7 @@ describe('hydrateArticleContent', () => {
       githubModels: { ...DEFAULT_CONFIG.githubModels, fetchArticleContent: false },
     };
 
-    const articles: import('../src/core/types.js').ArticleItem[] = [
+    const articles: ArticleItem[] = [
       { type: 'article', id: '1', title: 'Test', link: 'https://example.com/1' },
     ];
 
@@ -128,7 +128,7 @@ describe('hydrateArticleContent', () => {
     };
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const articles: import('../src/core/types.js').ArticleItem[] = [
+    const articles: ArticleItem[] = [
       { type: 'article', id: '1', title: 'Test', link: 'https://example.com/1', articleContent: 'Already fetched content' },
     ];
 
@@ -150,7 +150,7 @@ describe('hydrateArticleContent', () => {
       new Response('<html><body><article><p>This is a long enough paragraph to pass the length check and be extracted as article content for the model to process.</p></article></body></html>'),
     );
 
-    const articles: import('../src/core/types.js').ArticleItem[] = [
+    const articles: ArticleItem[] = [
       { type: 'article', id: '1', title: 'Test', link: 'https://example.com/article' },
     ];
 
@@ -168,7 +168,7 @@ describe('hydrateArticleContent', () => {
 
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'));
 
-    const articles: import('../src/core/types.js').ArticleItem[] = [
+    const articles: ArticleItem[] = [
       { type: 'article', id: '1', title: 'Test', link: 'https://example.com/fail', content: 'Fallback content' },
     ];
 
@@ -186,7 +186,7 @@ describe('hydrateArticleContent', () => {
     };
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const articles: import('../src/core/types.js').ArticleItem[] = [
+    const articles: ArticleItem[] = [
       { type: 'article', id: '1', title: 'No Link' },
     ];
 

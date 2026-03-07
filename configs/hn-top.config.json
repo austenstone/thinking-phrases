@@ -9,21 +9,31 @@
       "url": "https://github.blog/feed/"
     }
   ],
+  "rssFetchIntervalSeconds": 21600,
   "phraseFormatting": {
     "includeSource": true,
     "includeTime": true,
-    "maxLength": 140
+    "maxLength": 140,
+    "templates": {
+      "article": "%source% — %title% — %time%",
+      "hackerNews": "HN: %title% — %score% — %time%",
+      "stock": "%symbol% %price% %change% %market%",
+      "githubCommit": "%headline% (%delta%) %repo%@%sha% - @%author% %time%",
+      "githubFeed": "@%handle% %action% — %time%"
+    }
   },
   "githubModels": {
     "enabled": true,
-    "model": "openai/gpt-4.1",
+    "model": "openai/gpt-5",
     "tokenEnvVar": "GITHUB_MODELS_TOKEN",
     "maxInputItems": 10,
+    "maxInputTokens": 16000,
     "maxTokens": 300,
     "maxPhrasesPerArticle": 2,
     "temperature": 0.2,
     "fetchArticleContent": true,
-    "maxArticleContentLength": 6000
+    "maxArticleContentLength": 6000,
+    "cacheTtlSeconds": 604800
   },
   "stockQuotes": {
     "enabled": true,
@@ -49,13 +59,15 @@
       "WULF",
       "AMD"
     ],
-    "includeMarketState": true
+    "includeMarketState": true,
+    "fetchIntervalSeconds": 60
   },
   "hackerNews": {
     "enabled": true,
     "feed": "top",
-    "maxItems": 10,
-    "minScore": 10
+    "maxItems": 20,
+    "minScore": 0,
+    "fetchIntervalSeconds": 300
   },
   "earthquakes": {
     "enabled": false,
@@ -64,13 +76,15 @@
     "windowHours": 24,
     "limit": 10,
     "radiusKm": 500,
-    "orderBy": "time"
+    "orderBy": "time",
+    "fetchIntervalSeconds": 1800
   },
   "weatherAlerts": {
     "enabled": true,
     "zipCode": "33312",
     "minimumSeverity": "moderate",
-    "limit": 10
+    "limit": 10,
+    "fetchIntervalSeconds": 1800
   },
   "customJson": {
     "enabled": false,
@@ -83,7 +97,8 @@
     "sourceLabel": "",
     "dateField": "publishedAt",
     "idField": "id",
-    "maxItems": 10
+    "maxItems": 10,
+    "fetchIntervalSeconds": 3600
   },
   "githubActivity": {
     "enabled": true,
@@ -92,6 +107,7 @@
     "feedKind": "timeline",
     "maxItems": 30,
     "sinceHours": 1,
-    "tokenEnvVar": "GITHUB_TOKEN"
+    "tokenEnvVar": "GITHUB_TOKEN",
+    "fetchIntervalSeconds": 300
   }
 }

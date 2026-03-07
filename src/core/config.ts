@@ -28,6 +28,7 @@ export function resolveConfigPath(configPath?: string): string {
 
 export const DEFAULT_CONFIG: Config = {
   feeds: [],
+  rssFetchIntervalSeconds: 21600,
   limit: 25,
   mode: 'replace',
   target: 'auto',
@@ -35,28 +36,41 @@ export const DEFAULT_CONFIG: Config = {
     includeSource: true,
     includeTime: true,
     maxLength: 140,
+    templates: {
+      article: '%source% — %title% — %time%',
+      hackerNews: 'HN: %title% — %score% — %time%',
+      stock: '%symbol% %price% %change% %market%',
+      githubCommit: '%headline% (%delta%) %repo%@%sha% - @%author% %time%',
+      githubFeed: '@%handle% %action% — %time%',
+    },
   },
   githubModels: {
     enabled: false,
-    model: 'openai/gpt-4.1',
+    endpoint: 'https://models.github.ai/inference',
+    model: 'openai/gpt-4o-mini',
     tokenEnvVar: 'GITHUB_MODELS_TOKEN',
     maxInputItems: 10,
-    maxTokens: 300,
+    maxInputTokens: 16000,
+    maxTokens: 500,
+    maxConcurrency: 3,
     maxPhrasesPerArticle: 2,
     temperature: 0.2,
     fetchArticleContent: true,
     maxArticleContentLength: 6000,
+    cacheTtlSeconds: 604800,
   },
   stockQuotes: {
     enabled: false,
     symbols: ['MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'AMD'],
     includeMarketState: true,
+    fetchIntervalSeconds: 60,
   },
   hackerNews: {
     enabled: false,
     feed: 'top',
     maxItems: 10,
     minScore: 50,
+    fetchIntervalSeconds: 300,
   },
   earthquakes: {
     enabled: false,
@@ -66,6 +80,7 @@ export const DEFAULT_CONFIG: Config = {
     limit: 10,
     radiusKm: 500,
     orderBy: 'time',
+    fetchIntervalSeconds: 1800,
   },
   weatherAlerts: {
     enabled: false,
@@ -73,6 +88,7 @@ export const DEFAULT_CONFIG: Config = {
     area: '',
     minimumSeverity: 'moderate',
     limit: 10,
+    fetchIntervalSeconds: 1800,
   },
   customJson: {
     enabled: false,
@@ -86,6 +102,7 @@ export const DEFAULT_CONFIG: Config = {
     dateField: 'publishedAt',
     idField: 'id',
     maxItems: 10,
+    fetchIntervalSeconds: 3600,
   },
   githubActivity: {
     enabled: false,
@@ -98,6 +115,7 @@ export const DEFAULT_CONFIG: Config = {
     maxItems: 10,
     sinceHours: 24,
     tokenEnvVar: 'GITHUB_TOKEN',
+    fetchIntervalSeconds: 300,
   },
 };
 
@@ -272,6 +290,12 @@ export function parseArgs(argv: string[]): CliOverrides {
           index += 1;
         }
         break;
+      case '--models-max-input-tokens':
+        if (next) {
+          setModels({ maxInputTokens: Number(next) });
+          index += 1;
+        }
+        break;
       case '--models-max-tokens':
         if (next) {
           setModels({ maxTokens: Number(next) });
@@ -287,6 +311,18 @@ export function parseArgs(argv: string[]): CliOverrides {
       case '--models-temperature':
         if (next) {
           setModels({ temperature: Number(next) });
+          index += 1;
+        }
+        break;
+      case '--models-endpoint':
+        if (next) {
+          setModels({ endpoint: next });
+          index += 1;
+        }
+        break;
+      case '--models-max-concurrency':
+        if (next) {
+          setModels({ maxConcurrency: Number(next) });
           index += 1;
         }
         break;
@@ -566,6 +602,7 @@ export function mergeConfig(base: Config, fileConfig: Partial<Config>, argConfig
     verbose: argConfig.verbose ?? fileConfig.verbose ?? base.verbose,
     debug: argConfig.debug ?? fileConfig.debug ?? base.debug,
     feeds: argConfig.feeds ?? fileConfig.feeds ?? base.feeds,
+    rssFetchIntervalSeconds: argConfig.rssFetchIntervalSeconds ?? fileConfig.rssFetchIntervalSeconds ?? base.rssFetchIntervalSeconds,
     phraseFormatting: {
       ...base.phraseFormatting,
       ...(fileConfig.phraseFormatting ?? {}),
@@ -601,6 +638,7 @@ export function mergeConfig(base: Config, fileConfig: Partial<Config>, argConfig
       ...(fileConfig.customJson ?? {}),
       ...(argConfig.customJson ?? {}),
     },
+    customJsonSources: argConfig.customJsonSources ?? fileConfig.customJsonSources ?? base.customJsonSources,
     githubActivity: {
       ...base.githubActivity,
       ...(fileConfig.githubActivity ?? {}),
@@ -617,6 +655,7 @@ export function validateConfig(config: Config): void {
     && !config.earthquakes.enabled
     && !config.weatherAlerts.enabled
     && !config.customJson.enabled
+    && !(config.customJsonSources ?? []).some(s => s.enabled)
     && !config.githubActivity.enabled
   ) {
     throw new Error('Configure at least one source before running dynamic phrases.');
@@ -645,6 +684,14 @@ export function validateConfig(config: Config): void {
 
   if (config.githubModels.temperature < 0 || config.githubModels.temperature > 1) {
     throw new Error(`githubModels.temperature must be between 0 and 1. Received: ${config.githubModels.temperature}`);
+  }
+
+  if (!Number.isFinite(config.githubModels.maxConcurrency) || config.githubModels.maxConcurrency < 1) {
+    throw new Error(`githubModels.maxConcurrency must be at least 1. Received: ${config.githubModels.maxConcurrency}`);
+  }
+
+  if (config.githubModels.endpoint && !/^https?:\/\//u.test(config.githubModels.endpoint)) {
+    throw new Error(`githubModels.endpoint must be a valid HTTP(S) URL. Received: ${config.githubModels.endpoint}`);
   }
 
   const invalidFeed = config.feeds.find(feed => !feed.url.trim());
@@ -679,6 +726,20 @@ export function validateConfig(config: Config): void {
 
     if (!config.customJson.titleField.trim()) {
       throw new Error('customJson.titleField must be set when customJson is enabled.');
+    }
+  }
+
+  for (const [index, source] of (config.customJsonSources ?? []).entries()) {
+    if (!source.enabled) {
+      continue;
+    }
+
+    if (!source.url.trim()) {
+      throw new Error(`customJsonSources[${index}].url must be set when enabled.`);
+    }
+
+    if (!source.titleField.trim()) {
+      throw new Error(`customJsonSources[${index}].titleField must be set when enabled.`);
     }
   }
 

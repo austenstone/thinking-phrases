@@ -1,7 +1,7 @@
 import type { Config } from './types.js';
 
 type ConfigPresetConfig = {
-  [K in keyof Config]?: Config[K] extends Array<infer T>
+  [K in keyof Config]?: Config[K] extends (infer T)[]
     ? T[]
     : Config[K] extends object
       ? Partial<Config[K]>

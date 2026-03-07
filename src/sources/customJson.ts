@@ -1,4 +1,4 @@
-import type { ArticleItem, Config, PhraseSource } from '../core/types.js';
+import type { ArticleItem, Config, CustomJsonConfig, PhraseSource } from '../core/types.js';
 import { fetchJson, logInfo, relativeTime, stripHtml, truncate } from '../core/utils.js';
 
 type PathSegment = number | string;
@@ -125,33 +125,29 @@ function resolveItems(payload: unknown, path?: string): unknown[] {
   throw new Error(`Custom JSON items path did not resolve to an array${path?.trim() ? `: ${path}` : ''}`);
 }
 
-export async function fetchCustomJsonArticles(config: Config): Promise<ArticleItem[]> {
-  if (!config.customJson.enabled) {
-    return [];
-  }
-
-  logInfo(config, `Fetching custom JSON items from ${config.customJson.url}`);
-  const payload = await fetchJson<unknown>(config.customJson.url);
-  const items = resolveItems(payload, config.customJson.itemsPath).slice(0, config.customJson.maxItems);
-  const defaultSource = config.customJson.sourceLabel?.trim() || buildDefaultSourceLabel(config.customJson.url);
+async function fetchSingleCustomJsonSource(sourceConfig: CustomJsonConfig, config: Config): Promise<ArticleItem[]> {
+  logInfo(config, `Fetching custom JSON items from ${sourceConfig.url}`);
+  const payload = await fetchJson<unknown>(sourceConfig.url);
+  const items = resolveItems(payload, sourceConfig.itemsPath).slice(0, sourceConfig.maxItems);
+  const defaultSource = sourceConfig.sourceLabel?.trim() || buildDefaultSourceLabel(sourceConfig.url);
 
   return items.flatMap((item, index) => {
     if (!item || typeof item !== 'object') {
       return [];
     }
 
-    const title = readStringValue(item, config.customJson.titleField);
+    const title = readStringValue(item, sourceConfig.titleField);
     if (!title) {
       return [];
     }
 
-    const content = stripHtml(readStringValue(item, config.customJson.contentField));
-    const datetime = toIsoDate(getPathValue(item, config.customJson.dateField));
-    const link = readStringValue(item, config.customJson.linkField);
-    const source = readStringValue(item, config.customJson.sourceField) ?? defaultSource;
-    const id = readStringValue(item, config.customJson.idField)
+    const content = stripHtml(readStringValue(item, sourceConfig.contentField));
+    const datetime = toIsoDate(getPathValue(item, sourceConfig.dateField));
+    const link = readStringValue(item, sourceConfig.linkField);
+    const source = readStringValue(item, sourceConfig.sourceField) ?? defaultSource;
+    const id = readStringValue(item, sourceConfig.idField)
       ?? link
-      ?? `${config.customJson.url}#${index}:${title}`;
+      ?? `${sourceConfig.url}#${index}:${title}`;
 
     return [{
       type: 'article' as const,
@@ -167,8 +163,22 @@ export async function fetchCustomJsonArticles(config: Config): Promise<ArticleIt
   });
 }
 
+export async function fetchCustomJsonArticles(config: Config): Promise<ArticleItem[]> {
+  const allSources: CustomJsonConfig[] = [
+    ...(config.customJson.enabled ? [config.customJson] : []),
+    ...(config.customJsonSources ?? []).filter(s => s.enabled),
+  ];
+
+  if (allSources.length === 0) {
+    return [];
+  }
+
+  const results = await Promise.all(allSources.map(source => fetchSingleCustomJsonSource(source, config)));
+  return results.flat();
+}
+
 export const customJsonSource: PhraseSource = {
   type: 'custom-json',
-  isEnabled: config => config.customJson.enabled,
+  isEnabled: config => config.customJson.enabled || (config.customJsonSources ?? []).some(s => s.enabled),
   fetch: fetchCustomJsonArticles,
 };

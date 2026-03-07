@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { buildStockPhrase, fetchStockItems, stockSource } from '../src/sources/stocks.js';
 import { DEFAULT_CONFIG } from '../src/core/config.js';
 import type { Config, StockItem } from '../src/core/types.js';

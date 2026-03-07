@@ -294,7 +294,7 @@ describe('fetchGitHubActivityArticles — feed', () => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
       const req = input instanceof Request ? input : undefined;
       const headers = req?.headers;
-      const accept = headers?.get?.('accept') ?? '';
+      const _accept = headers?.get?.('accept') ?? '';
 
       if (url === 'https://api.github.com/user') {
         return new Response(JSON.stringify({ login: 'testuser' }), { status: 200 });
