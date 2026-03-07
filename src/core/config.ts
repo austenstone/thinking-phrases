@@ -27,7 +27,7 @@ export function resolveConfigPath(configPath?: string): string {
 }
 
 export const DEFAULT_CONFIG: Config = {
-  feeds: [{ url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en' }],
+  feeds: [],
   limit: 25,
   mode: 'replace',
   target: 'auto',
@@ -70,7 +70,7 @@ export const DEFAULT_CONFIG: Config = {
   weatherAlerts: {
     enabled: false,
     zipCode: '',
-    area: 'FL',
+    area: '',
     minimumSeverity: 'moderate',
     limit: 10,
   },

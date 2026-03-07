@@ -48,6 +48,12 @@
 			"type": "shell",
 			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --config configs/github-timeline.config.json",
 			"isBackground": false
+		},
+		{
+			"label": "final-production-validation",
+			"type": "shell",
+			"command": "./node_modules/.bin/tsc --noEmit && ./bin/thinking-phrases.ts --dry-run --use-github --github-mode feed --github-feed-kind organization --github-org github --github-max-items 3 && echo '--- interactive flag check ---' && ./bin/thinking-phrases.ts --dry-run --interactive 2>&1 | head -20",
+			"isBackground": false
 		}
 	]
 }

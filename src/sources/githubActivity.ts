@@ -129,6 +129,7 @@ async function fetchGitHubJson<T>(url: string, token?: string): Promise<T> {
     return await fetchJson<T>(url, buildGitHubHeaders(token));
   } catch (error) {
     if (token && isGitHubAuthFailure(error)) {
+      console.warn('GitHub token rejected, retrying without auth');
       return fetchJson<T>(url, buildGitHubHeaders(undefined));
     }
 
@@ -148,6 +149,7 @@ async function fetchGitHubText(url: string, token?: string, accept = 'applicatio
     return await fetchText(url, buildGitHubHeaders(token, accept));
   } catch (error) {
     if (token && isGitHubAuthFailure(error)) {
+      console.warn('GitHub token rejected, retrying without auth');
       return fetchText(url, buildGitHubHeaders(undefined, accept));
     }
 

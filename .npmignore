@@ -1,0 +1,10 @@
+.env
+.git/
+.gitignore
+.vscode/
+.DS_Store
+dist/
+out/
+node_modules/
+*.swp
+Thumbs.db

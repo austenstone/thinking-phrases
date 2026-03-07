@@ -2,23 +2,13 @@
 
 Turn your VS Code thinking indicator into a live dashboard. Static tip packs, real-time data sources, AI-powered summaries — all piped into [`chat.agent.thinking.phrases`](https://code.visualstudio.com/updates/v1_110#_custom-thinking-phrases).
 
-## What it looks like
+## Quick start
 
-```
-vscode@c0ebf3e Sessions - rename changes and git folders (#299936) (+2 -2) 2h ago - @lszomoru
-```
-
-```
-@pablovilas starred spec-kit — 1m ago
+```bash
+npx thinking-phrases --interactive
 ```
 
-```
-MSFT — $412.21 — ▲ 1.32%
-```
-
-```
-M4.2 earthquake — 12 km NE of Ridgecrest, CA — 38m ago
-```
+That's it. No install, no clone, no config files. The interactive CLI walks you through picking sources, previewing phrases, writing to VS Code settings, and optionally installing a macOS scheduler.
 
 ## Features
 
@@ -64,14 +54,6 @@ A `launchd` job that refreshes your phrases on a cron-like interval. Set it to 5
 ### Multiple config profiles
 
 Keep separate configs for different moods. `configs/github-timeline.config.json` for work, `configs/stocks-only.config.json` for market hours, swap between them.
-
-## Quick start
-
-```bash
-npx thinking-phrases --interactive
-```
-
-That's it. No install, no clone, no config files. The interactive CLI walks you through picking sources, previewing phrases, writing to VS Code settings, and optionally installing a macOS scheduler.
 
 ### One-liner examples
 

@@ -22,7 +22,7 @@
     "maxArticleContentLength": 6000
   },
   "stockQuotes": {
-    "enabled": true,
+    "enabled": false,
     "symbols": [
       "MSFT"
     ],
