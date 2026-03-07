@@ -5,7 +5,7 @@ import { CONFIG_PATH, DEFAULT_CONFIG, mergeConfig, readConfigFile, resolveConfig
 import { discoverConfigProfiles, formatConfigPathForDisplay, getInstalledSchedulerInfo } from './scheduler.js';
 import { discoverStaticPacks } from './staticPacks.js';
 import type { CliOverrides, Config, FeedConfig } from './types.js';
-import { isValidUsZipCode, normalizeSymbols, normalizeUsZipCode } from './utils.js';
+import { detectZipFromIp, isValidUsZipCode, normalizeSymbols, normalizeUsZipCode } from './utils.js';
 
 interface InteractivePromptOptions {
 	showIntro?: boolean;
@@ -442,23 +442,6 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		}
 
 		overrides.feeds = parseCsv(keepExistingValue(feedInput, existingFeeds)).map(url => ({ url } satisfies FeedConfig));
-
-		const existingLimit = String(selectedConfig.limit);
-		const limitInput = await text({
-			message: 'How many RSS items should be considered?',
-			initialValue: existingLimit,
-			validate(value) {
-				const parsed = Number(keepExistingValue(value, existingLimit));
-				return Number.isInteger(parsed) && parsed > 0 ? undefined : 'Enter a positive integer.';
-			},
-		});
-
-		if (isCancel(limitInput)) {
-			return cancelFlow('Interactive run cancelled. No settings were changed.');
-		}
-
-		overrides.limit = Number(keepExistingValue(limitInput, existingLimit));
-
 	}
 
 	if (useStocks) {
@@ -500,12 +483,17 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const existingZipCode = selectedConfig.earthquakes.zipCode?.trim()
 			|| selectedConfig.weatherAlerts.zipCode?.trim()
 			|| '';
+
+		// Auto-detect ZIP from IP if not already configured
+		const detectedZip = existingZipCode || await detectZipFromIp();
+		const defaultZip = detectedZip || '';
+
 		const zipCodeInput = await text({
 			message: useEarthquakes && useWeatherAlerts ? 'ZIP code for local earthquake + weather lookups' : useEarthquakes ? 'ZIP code for local earthquake lookups' : 'ZIP code for local weather lookups',
-			placeholder: existingZipCode || '33312',
-			initialValue: existingZipCode,
+			placeholder: defaultZip || '33312',
+			initialValue: defaultZip,
 			validate(value) {
-				const zipCode = normalizeUsZipCode(keepExistingValue(value, existingZipCode));
+				const zipCode = normalizeUsZipCode(keepExistingValue(value, defaultZip));
 				return zipCode && isValidUsZipCode(zipCode) ? undefined : 'Enter a valid 5-digit US ZIP code.';
 			},
 		});
@@ -514,7 +502,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 			return cancelFlow('Interactive run cancelled. No settings were changed.');
 		}
 
-		resolvedZipCode = normalizeUsZipCode(keepExistingValue(zipCodeInput, existingZipCode));
+		resolvedZipCode = normalizeUsZipCode(keepExistingValue(zipCodeInput, defaultZip));
 	}
 
 	if (useHackerNews) {

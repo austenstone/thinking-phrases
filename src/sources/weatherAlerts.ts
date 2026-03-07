@@ -14,6 +14,7 @@ interface NwsPointResponse {
     forecastHourly?: string;
     forecastZone?: string;
     county?: string;
+    observationStations?: string;
   };
 }
 
@@ -39,6 +40,22 @@ interface NwsAlertsResponse {
 interface WeatherLookupContext {
   locationLabel: string;
   lookupUrl: string;
+  stationsUrl?: string;
+}
+
+interface NwsStationsResponse {
+  features?: { properties?: { stationIdentifier?: string } }[];
+}
+
+interface NwsObservationResponse {
+  properties?: {
+    temperature?: { value?: number | null };
+    textDescription?: string;
+    windSpeed?: { value?: number | null };
+    windDirection?: { value?: number | null };
+    relativeHumidity?: { value?: number | null };
+    timestamp?: string;
+  };
 }
 
 const SEVERITY_RANK: Record<WeatherSeverity, number> = {
@@ -87,6 +104,71 @@ function buildLookupUrl(latitude: number, longitude: number): string {
   return `https://forecast.weather.gov/MapClick.php?lat=${latitude}&lon=${longitude}`;
 }
 
+function windDirectionLabel(degrees?: number | null): string | undefined {
+  if (degrees === null || degrees === undefined || !Number.isFinite(degrees)) return undefined;
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return dirs[Math.round(degrees / 45) % 8];
+}
+
+function celsiusToFahrenheit(c: number): number {
+  return Math.round(c * 9 / 5 + 32);
+}
+
+function metersPerSecToMph(ms: number): number {
+  return Math.round(ms * 2.237);
+}
+
+async function fetchCurrentConditions(context: WeatherLookupContext, config: Config): Promise<ArticleItem | null> {
+  if (!context.stationsUrl) return null;
+
+  try {
+    const stationsPayload = await fetchJson<NwsStationsResponse>(context.stationsUrl, { accept: 'application/geo+json' });
+    const stationId = stationsPayload.features?.[0]?.properties?.stationIdentifier;
+    if (!stationId) return null;
+
+    const obsUrl = `https://api.weather.gov/stations/${stationId}/observations/latest`;
+    const obs = await fetchJson<NwsObservationResponse>(obsUrl, { accept: 'application/geo+json' });
+    const props = obs.properties;
+    if (!props) return null;
+
+    const tempC = props.temperature?.value;
+    const tempF = tempC !== null && tempC !== undefined ? celsiusToFahrenheit(tempC) : undefined;
+    const description = props.textDescription?.trim();
+    const windMs = props.windSpeed?.value;
+    const windMph = windMs !== null && windMs !== undefined ? metersPerSecToMph(windMs) : undefined;
+    const windDir = windDirectionLabel(props.windDirection?.value);
+    const humidity = props.relativeHumidity?.value;
+
+    if (tempF === undefined && !description) return null;
+
+    const parts = [context.locationLabel];
+    if (tempF !== undefined) parts.push(`${tempF}°F`);
+    if (description) parts.push(description);
+    if (windMph !== undefined && windMph > 0) {
+      parts.push(`Wind ${windDir ?? ''} ${windMph} mph`.replace(/\s+/gu, ' ').trim());
+    }
+    if (humidity !== null && humidity !== undefined) {
+      parts.push(`Humidity ${Math.round(humidity)}%`);
+    }
+
+    const title = parts.join(', ');
+    logInfo(config, `Current conditions: ${title}`);
+
+    return {
+      type: 'article',
+      id: `weather-conditions:${stationId}`,
+      title,
+      displayPhrase: title + ' — Weather.gov',
+      link: context.lookupUrl,
+      source: 'Weather.gov',
+      content: title,
+      articleContent: title,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function buildNoAlertsArticle(context: WeatherLookupContext): ArticleItem {
   return {
     type: 'article',
@@ -123,6 +205,7 @@ export async function fetchWeatherAlertArticles(config: Config): Promise<Article
     lookupContext = {
       locationLabel: locationLabel || `${zipLocation.zipCode}`,
       lookupUrl: buildLookupUrl(zipLocation.latitude, zipLocation.longitude),
+      stationsUrl: pointPayload.properties?.observationStations,
     };
     logInfo(
       config,
@@ -165,9 +248,19 @@ export async function fetchWeatherAlertArticles(config: Config): Promise<Article
     })
     .filter(item => Boolean(item.title));
 
+  // Always fetch current conditions when we have a ZIP-based location
+  const conditionsArticle = lookupContext ? await fetchCurrentConditions(lookupContext, config) : null;
+
   if (items.length === 0 && lookupContext) {
     logInfo(config, `No active weather alerts for ${lookupContext.locationLabel}. Lookup: ${lookupContext.lookupUrl}`);
-    return [buildNoAlertsArticle(lookupContext)];
+    const results: ArticleItem[] = [];
+    if (conditionsArticle) results.push(conditionsArticle);
+    results.push(buildNoAlertsArticle(lookupContext));
+    return results;
+  }
+
+  if (conditionsArticle) {
+    return [conditionsArticle, ...items];
   }
 
   return items;
