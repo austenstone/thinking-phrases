@@ -217,7 +217,7 @@ async function fetchGitHubJson<T>(url: string, token?: string): Promise<T> {
 
 async function fetchGitHubJsonWithHeaders<T>(url: string, headers: Record<string, string>): Promise<T> {
   return fetchJson<T>(url, {
-    'user-agent': 'thinking-phrases/1.0 (+https://github.com/austenstone/thinking-phrases)',
+    'user-agent': USER_AGENT,
     ...headers,
   });
 }
@@ -467,6 +467,12 @@ function buildCommitArticle(repoLabel: string, detail: GitHubCommitDetail, conte
     time: relativeTime(datetime),
     content: detail.commit?.message?.trim(),
     articleContent: content,
+    metadata: {
+      repo: repoName,
+      delta: deltaLabel,
+      author: authorHandle ? `@${authorHandle}` : undefined,
+      sha: shortShaLabel,
+    },
   };
 }
 

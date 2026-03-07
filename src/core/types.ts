@@ -155,6 +155,8 @@ export interface ArticleItem {
 	time?: string;
 	content?: string;
 	articleContent?: string;
+	/** Source-specific metadata for suffix display (e.g. HN score, commit delta) */
+	metadata?: Record<string, string | undefined>;
 }
 
 export interface StockItem {

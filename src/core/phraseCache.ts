@@ -169,13 +169,8 @@ export function cacheModelResults(articles: ArticleItem[], phrases: string[], co
     cache[article.id] = { phrases: articlePhrases, cachedAt: Date.now() };
   }
 
-  // Any remaining phrases that didn't get assigned still need caching
-  // (e.g. model returned fewer articles but more phrases for some)
-  // Stash them under a synthetic key so they're not lost
-  if (phraseIndex < phrases.length) {
-    const overflow = phrases.slice(phraseIndex);
-    cache[`_overflow_${Date.now()}`] = { phrases: overflow, cachedAt: Date.now() };
-  }
+  // Overflow phrases (more output than articles) are dropped — they'd accumulate
+  // under unique keys and never get reused.
 
   writeModelCache(cache);
 }
@@ -232,6 +227,39 @@ export function getStoredPhrases(sourceType: string): string[] {
 export function getAllStoredPhrases(): string[] {
   const store = readPhraseStore();
   return Object.values(store).flatMap(entry => entry.phrases);
+}
+
+/**
+ * Merge stored phrases with fair round-robin distribution across sources.
+ * Each source contributes proportionally so no single source dominates.
+ */
+export function getMergedPhrases(limit: number): string[] {
+  const store = readPhraseStore();
+  const entries = Object.values(store).filter(e => e.phrases.length > 0);
+  if (entries.length === 0) return [];
+
+  const result: string[] = [];
+  const perSource = Math.max(1, Math.ceil(limit / entries.length));
+
+  // First pass: give each source its fair share
+  for (const entry of entries) {
+    result.push(...entry.phrases.slice(0, perSource));
+  }
+
+  // Second pass: fill remaining slots from sources that have more
+  if (result.length < limit) {
+    for (const entry of entries) {
+      const remaining = entry.phrases.slice(perSource);
+      for (const phrase of remaining) {
+        if (result.length >= limit) break;
+        if (!result.includes(phrase)) {
+          result.push(phrase);
+        }
+      }
+    }
+  }
+
+  return result.slice(0, limit);
 }
 
 /**

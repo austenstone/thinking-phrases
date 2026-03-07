@@ -106,54 +106,8 @@ async function runGitHubModelsPrompt(config: GitHubModelsConfig, content: string
   return text;
 }
 
-export function chunkArticles(articles: ArticleItem[], config: GitHubModelsConfig): ArticleItem[][] {
-  const chunks: ArticleItem[][] = [];
-  const estimatedPerChunk = Math.max(1, Math.floor(config.maxTokens / Math.max(80, config.maxPhrasesPerArticle * 80)));
-  const defaultChunkSize = Math.max(1, Math.min(config.maxInputItems, estimatedPerChunk));
-  // Derive character budget from the model's input token limit.
-  // ~4 chars per token, minus headroom for instruction/JSON envelope and output.
-  const tokenBudget = config.maxInputTokens - config.maxTokens;
-  const maxCharactersPerChunk = Math.max(4000, (tokenBudget * 4) - 2000);
-
-  let currentChunk: ArticleItem[] = [];
-  let currentCharacters = 0;
-
-  const estimateArticleCharacters = (article: ArticleItem): number => {
-    return [article.title, article.source, article.time, article.articleContent, article.content, article.link]
-      .filter(Boolean)
-      .join(' ')
-      .length;
-  };
-
-  const flushCurrentChunk = (): void => {
-    if (currentChunk.length > 0) {
-      chunks.push(currentChunk);
-      currentChunk = [];
-      currentCharacters = 0;
-    }
-  };
-
-  for (const article of articles) {
-    const articleCharacters = estimateArticleCharacters(article);
-
-    if (
-			currentChunk.length > 0
-			&& (currentChunk.length >= defaultChunkSize || currentCharacters + articleCharacters > maxCharactersPerChunk)
-		) {
-      flushCurrentChunk();
-    }
-
-    currentChunk.push(article);
-    currentCharacters += articleCharacters;
-
-    if (articleCharacters > maxCharactersPerChunk) {
-      flushCurrentChunk();
-    }
-  }
-
-  flushCurrentChunk();
-
-  return chunks;
+export function chunkArticles(articles: ArticleItem[], _config: GitHubModelsConfig): ArticleItem[][] {
+  return articles.map(article => [article]);
 }
 
 export async function buildModelArticlePhrases(
@@ -170,13 +124,14 @@ export async function buildModelArticlePhrases(
     const contentBudget = config.githubModels.maxArticleContentLength;
     const payload = JSON.stringify({
       instruction: config.githubModels.systemPrompt ?? [
-        'Create concise VS Code thinking phrases from these normalized content items.',
+        'Create concise VS Code thinking phrases from these content items.',
         'Return JSON only in this shape: {"phrases":["..."]}.',
         'Each phrase must be factual, concrete, and at most maxLength characters.',
         'You may emit multiple phrases for one item when it has multiple distinct takeaways.',
         'Return at most maxPhrasesPerArticle phrases per item.',
-        'Prefer concrete details like numbers, locations, dates, features, examples, or outcomes.',
-        'Avoid vague rewrites of the headline.',
+        'For articles/blog posts: extract the most surprising or useful concrete detail — numbers, features, dates, outcomes.',
+        'For code commits/diffs: explain WHAT the change does and WHY, not which files were edited or line counts. The reader already sees the repo and stats in the suffix.',
+        'Never output file paths, line counts, or SHA hashes — those are shown separately.',
         'Do NOT include the source name or time/date in the phrase — those are appended separately.',
       ].join(' '),
       maxLength: config.phraseFormatting.maxLength,
@@ -197,14 +152,13 @@ export async function buildModelArticlePhrases(
     completedChunks += 1;
     options.onProgress?.(`Generated GitHub Models phrases (${completedChunks}/${chunks.length})`);
 
-    // Tag each phrase with the source/time from its chunk's articles
-    const chunkSource = chunk[0]?.source;
-    const chunkTime = chunk[0]?.time;
+    // Tag each phrase with the source/time/metadata from the article
+    const article = chunk[0];
 
     return extractModelPhrases(responseText)
       .map(phrase => singleLine(decodeHtmlEntities(phrase), config.phraseFormatting.maxLength))
       .filter(Boolean)
-      .map(phrase => appendSourceSuffix(phrase, chunkSource, chunkTime));
+      .map(phrase => appendSourceSuffix(phrase, article?.source, article?.time, article?.metadata));
   };
 
   // Process chunks with bounded concurrency and a delay between batches

@@ -92,14 +92,15 @@ describe('chunkArticles', () => {
     expect(chunkArticles([], baseModelsConfig)).toEqual([]);
   });
 
-  it('puts small articles in one chunk', () => {
+  it('puts each article in its own chunk', () => {
     const articles = [makeArticle('A'), makeArticle('B')];
     const chunks = chunkArticles(articles, baseModelsConfig);
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0]).toHaveLength(2);
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]).toHaveLength(1);
+    expect(chunks[1]).toHaveLength(1);
   });
 
-  it('splits when exceeding maxInputItems per chunk', () => {
+  it('creates one chunk per article regardless of size', () => {
     const articles = [
       makeArticle('A'),
       makeArticle('B'),
@@ -107,35 +108,29 @@ describe('chunkArticles', () => {
       makeArticle('D'),
       makeArticle('E'),
     ];
-    const config = { ...baseModelsConfig, maxInputItems: 2 };
-    const chunks = chunkArticles(articles, config);
-    expect(chunks.length).toBeGreaterThan(1);
-    // No chunk should exceed 2 items (the limit)
+    const chunks = chunkArticles(articles, baseModelsConfig);
+    expect(chunks).toHaveLength(5);
     for (const chunk of chunks) {
-      expect(chunk.length).toBeLessThanOrEqual(2);
+      expect(chunk).toHaveLength(1);
     }
   });
 
-  it('splits on character limit', () => {
-    // Create articles large enough to exceed the per-chunk character budget
+  it('handles large articles as single chunks', () => {
     const bigContent = 'x'.repeat(50_000);
     const articles = [
       makeArticle('Big One', bigContent),
       makeArticle('Big Two', bigContent),
     ];
-    const config = { ...baseModelsConfig, maxInputItems: 100 };
-    const chunks = chunkArticles(articles, config);
-    // Each large article should be in its own chunk
-    expect(chunks.length).toBe(2);
+    const chunks = chunkArticles(articles, baseModelsConfig);
+    expect(chunks).toHaveLength(2);
   });
 
-  it('preserves article order within chunks', () => {
+  it('preserves article order', () => {
     const articles = [makeArticle('First'), makeArticle('Second'), makeArticle('Third')];
     const chunks = chunkArticles(articles, baseModelsConfig);
-    const flat = chunks.flat();
-    expect(flat[0].title).toBe('First');
-    expect(flat[1].title).toBe('Second');
-    expect(flat[2].title).toBe('Third');
+    expect(chunks[0][0].title).toBe('First');
+    expect(chunks[1][0].title).toBe('Second');
+    expect(chunks[2][0].title).toBe('Third');
   });
 });
 

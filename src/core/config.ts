@@ -29,7 +29,7 @@ export function resolveConfigPath(configPath?: string): string {
 export const DEFAULT_CONFIG: Config = {
   feeds: [],
   rssFetchIntervalSeconds: 21600,
-  limit: 25,
+  limit: 100,
   mode: 'replace',
   target: 'auto',
   phraseFormatting: {
@@ -63,7 +63,7 @@ export const DEFAULT_CONFIG: Config = {
     enabled: false,
     symbols: ['MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL', 'AMD'],
     includeMarketState: true,
-    showClosed: true,
+    showClosed: false,
     fetchIntervalSeconds: 60,
   },
   hackerNews: {

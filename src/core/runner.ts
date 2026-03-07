@@ -11,7 +11,7 @@ import {
   promptForPostDryRunAction,
   promptForStaticSchedulerAfterDryRun,
 } from './interactive.js';
-import { cacheModelResults, getAllStoredPhrases, isSourceStale, markSourceFetched, partitionArticlesByModelCache, storePhrases } from './phraseCache.js';
+import { cacheModelResults, getMergedPhrases, isSourceStale, markSourceFetched, partitionArticlesByModelCache, storePhrases } from './phraseCache.js';
 import { DEFAULT_SCHEDULER_INTERVAL_SECONDS, formatConfigPathForDisplay, getInstalledSchedulerInfo } from './scheduler.js';
 import { dynamicSources } from './sourceCatalog.js';
 import { getStaticPackByPath } from './staticPacks.js';
@@ -370,7 +370,8 @@ export async function runDynamicPhrases(): Promise<void> {
       }
 
       // Merge all stored phrases (freshly fetched + retained from previous runs)
-      const phrases = dedupePhrases(getAllStoredPhrases()).slice(0, config.limit);
+      // Fair round-robin ensures every source gets representation
+      const phrases = dedupePhrases(getMergedPhrases(config.limit));
       stopInteractiveProgress(dryRun ? `Dry run ready — generated ${phrases.length} phrases` : `Generated ${phrases.length} phrases`);
       if (phrases.length === 0 && sourcesToFetch.length === 0) {
         logInfo(config, 'All sources still fresh — nothing to update this cycle');

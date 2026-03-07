@@ -68,6 +68,11 @@ export async function fetchHackerNewsArticles(config: Config): Promise<ArticleIt
         time: relativeTimestamp,
         content: stripHtml(item.text),
         articleContent: stripHtml(item.text),
+        metadata: {
+          author: item.by,
+          score: typeof item.score === 'number' ? `${item.score} pts` : undefined,
+          comments: typeof item.descendants === 'number' ? `${item.descendants}` : undefined,
+        },
       };
     });
 }

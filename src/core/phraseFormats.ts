@@ -208,11 +208,36 @@ export function formatWeatherNoAlertsPhrase(vars: WeatherNoAlertsPhraseVars): st
 // ── Source Suffix ───────────────────────────────────────────────────
 
 /**
- * Append a "— Source (time)" suffix to a phrase.
- * Used to tag model-generated phrases (which are content-only)
- * with their source attribution after the fact.
+ * Build a source suffix from article metadata.
+ * Format varies by source type:
+ *   HN:     "— HN @author 123 pts (2h ago)"
+ *   GitHub: "— repo +12/-3 @user (5m ago)"
+ *   RSS:    "— GitHub Blog (3h ago)"
  */
-export function appendSourceSuffix(phrase: string, source?: string, time?: string): string {
-  const suffix = [source, time ? `(${time})` : ''].filter(Boolean).join(' ');
+export function appendSourceSuffix(
+  phrase: string,
+  source?: string,
+  time?: string,
+  metadata?: Record<string, string | undefined>,
+): string {
+  const parts: string[] = [];
+
+  if (metadata?.repo && metadata?.delta) {
+    // GitHub commit: "repo +12/-3 @user"
+    parts.push(metadata.repo);
+    parts.push(metadata.delta);
+    if (metadata.author) parts.push(metadata.author);
+  } else if (metadata?.score) {
+    // Hacker News: "HN @author 123 pts"
+    if (source) parts.push(source);
+    if (metadata.author) parts.push(`@${metadata.author}`);
+    parts.push(metadata.score);
+  } else if (source) {
+    parts.push(source);
+  }
+
+  if (time) parts.push(`(${time})`);
+
+  const suffix = parts.join(' ');
   return suffix ? `${phrase}${PHRASE_SEPARATOR}${suffix}` : phrase;
 }
