@@ -14,7 +14,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const TIPS_DIR = join(__dirname, '..', 'tips');
 const VSCODE_TIPS_DIR = join(TIPS_DIR, 'vscode');
 const OUT_DIR = join(__dirname, '..', 'out');
-const WOW_TIPS_PATH = join(TIPS_DIR, 'wow-loading-screen-tips.json');
 
 const PLATFORMS: Platform[] = ['mac', 'windows', 'linux'];
 
@@ -26,6 +25,17 @@ function loadTips(): { category: string; tips: Tip[] }[] {
   }));
 }
 
+function loadStandalonePacks(): { name: string; phrases: string[] }[] {
+  const files = readdirSync(TIPS_DIR)
+    .filter(file => file.endsWith('.json'))
+    .sort();
+
+  return files.map(file => ({
+    name: file.replace('.json', ''),
+    phrases: JSON.parse(readFileSync(join(TIPS_DIR, file), 'utf-8')) as string[],
+  }));
+}
+
 function buildSettings(phrases: string[], mode: 'append' | 'replace' = 'append') {
   return {
     'chat.agent.thinking.phrases': { mode, phrases },
@@ -34,11 +44,17 @@ function buildSettings(phrases: string[], mode: 'append' | 'replace' = 'append')
 
 function main() {
   const categories = loadTips();
+  const standalonePacks = loadStandalonePacks();
   const totalTips = categories.reduce((sum, c) => sum + c.tips.length, 0);
 
   console.log(`Loaded ${totalTips} tips across ${categories.length} categories:`);
   for (const c of categories) {
     console.log(`  ${c.category}: ${c.tips.length} tips`);
+  }
+
+  console.log(`Loaded ${standalonePacks.length} standalone pack${standalonePacks.length === 1 ? '' : 's'}:`);
+  for (const pack of standalonePacks) {
+    console.log(`  ${pack.name}: ${pack.phrases.length} phrases`);
   }
 
   if (!existsSync(OUT_DIR)) {
@@ -64,11 +80,11 @@ function main() {
     console.log(`Removed ${legacyAllTipsPath}`);
   }
 
-  const wowTips = JSON.parse(readFileSync(WOW_TIPS_PATH, 'utf-8')) as string[];
-  const wowJsonPath = join(OUT_DIR, 'wow-loading-screen-tips.json');
-  const wowSettings = buildSettings(wowTips);
-  writeFileSync(wowJsonPath, JSON.stringify(wowSettings, null, 2) + '\n');
-  console.log(`Wrote ${wowJsonPath} (${wowTips.length} tips)`);
+  for (const pack of standalonePacks) {
+    const outPath = join(OUT_DIR, `${pack.name}.json`);
+    writeFileSync(outPath, JSON.stringify(buildSettings(pack.phrases), null, 2) + '\n');
+    console.log(`Wrote ${outPath} (${pack.phrases.length} tips)`);
+  }
 
   const wowLuaPath = join(OUT_DIR, 'LoadingScreenTips.lua');
   if (existsSync(wowLuaPath)) {

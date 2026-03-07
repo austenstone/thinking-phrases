@@ -1,8 +1,6 @@
-# 🎮 Thinking Phrases
+# Thinking Phrases
 
 **Loading screen-style phrase packs for AI tools** — with VS Code as the first pack, not the whole universe.
-
-Inspired by [WoW loading screen tips](https://wowwiki-archive.fandom.com/wiki/Loading_screen_tips), [League tips](https://www.reddit.com/r/leagueoflegends/comments/6sm4lx/i_have_forged_a_list_of_all_the_loading_screen/), and every game that teaches you something while you wait.
 
 This repo currently targets the [`chat.agent.thinking.phrases`](https://code.visualstudio.com/updates/v1_110#_custom-thinking-phrases) setting introduced in VS Code 1.110, but the broader idea is bigger than VS Code: reusable phrase packs themed around products, workflows, games, and communities.
 
@@ -16,10 +14,15 @@ Every time Copilot is thinking or running a tool, instead of generic loading tex
 
 > *Type /fork in chat to branch your conversation and explore a new direction.*
 
-Right now the repo ships two phrase packs:
+Right now the repo ships five phrase packs:
 
 - `vscode` — practical shortcuts, Copilot tips, Git, terminal, debugging, editor tricks, and a little flavor text
+- `javascript-tips` — original, modern JavaScript guidance focused on current syntax, async patterns, collection APIs, ESM, and practical language features
+- `typescript-tips` — original, modern TypeScript guidance focused on strictness, inference, utility types, `satisfies`, and current TS 5.x-era patterns
+- `league-loading-screen-tips` — an original League-inspired pack of gameplay advice, lore nods, and Rift-flavored nonsense
 - `wow-loading-screen-tips` — the original World of Warcraft loading tips wrapped in the same settings format
+
+Every generated file in `out/` is already wrapped in the VS Code settings shape, so you can paste any single pack directly into `settings.json`.
 
 ## Quick Start
 
@@ -45,6 +48,16 @@ By default, tips are set to `"append"` mode — they're added alongside VS Code'
 
 ## Packs
 
+### Pack overview
+
+| Pack | Tips | Style | Output |
+|------|------|-------|--------|
+| `vscode` | 80 | OS-aware VS Code shortcuts + workflows | `out/settings-mac.json`, `out/settings-windows.json`, `out/settings-linux.json`, `out/vscode-tips.json` |
+| `javascript-tips` | 100 | Modern JavaScript language + runtime tips | `out/javascript-tips.json` |
+| `typescript-tips` | 124 | Modern TypeScript patterns + compiler guidance | `out/typescript-tips.json` |
+| `league-loading-screen-tips` | 100 | Original League-inspired gameplay + lore tips | `out/league-loading-screen-tips.json` |
+| `wow-loading-screen-tips` | 109 | WoW loading screen tips in settings format | `out/wow-loading-screen-tips.json` |
+
 ### VS Code pack
 
 | Category | Tips | Description |
@@ -61,7 +74,35 @@ By default, tips are set to `"append"` mode — they're added alongside VS Code'
 
 ### Standalone packs
 
+- 🟨 [JavaScript tips](tips/javascript-tips.json) — 100 original modern JavaScript loading-screen style tips inspired by current language features, practical patterns, and the excellent ecosystem docs/tutorial rabbit hole
+- 🔷 [TypeScript tips](tips/typescript-tips.json) — 124 original TypeScript loading-screen style tips inspired by modern community guidance and official docs
+- 🧠 [League of Legends loading screen tips](tips/league-loading-screen-tips.json) — 100 original League-inspired tips based on classic loading-screen themes, lore references, and general gameplay advice
 - 🐉 [WoW loading screen tips](tips/wow-loading-screen-tips.json) — 109 original World of Warcraft loading tips wrapped in the same settings format
+
+#### JavaScript tips
+
+Focused on modern everyday JS, not dusty interview trivia:
+
+- `?.`, `??`, logical assignment, destructuring, rest/spread
+- `Promise.all`, `Promise.allSettled`, `async` / `await`, dynamic `import()`
+- modern array/object APIs like `.at()`, `toSorted()`, `Object.groupBy()`
+- practical runtime APIs like `AbortController`, `URL`, `Intl`, `BigInt`
+
+#### TypeScript tips
+
+Focused on current TS habits that actually improve codebases:
+
+- `strict`, `unknown`, discriminated unions, `satisfies`, `as const`
+- utility types, template literal types, `ReturnType`, `Parameters`, `NoInfer`
+- modern module config and ESM-aware compiler guidance
+- runtime-validation reminders so types don’t become fake security blankets
+
+#### League + WoW packs
+
+These are deliberately more flavor-heavy than the language packs:
+
+- `league-loading-screen-tips` mixes macro/gameplay advice with lore nods and Rift nonsense
+- `wow-loading-screen-tips` preserves the classic loading-screen vibe in a ready-to-paste format
 
 ## Tip Format
 
@@ -77,7 +118,26 @@ The `vscode` source files contain arrays of objects with platform-specific strin
 
 Mac tips use native symbols (⌘ ⌥ ⇧ ⌃). Windows/Linux tips use spelled-out keys (Ctrl, Alt, Shift).
 
-Standalone phrase packs like `tips/wow-loading-screen-tips.json` can just be plain string arrays when they don't need OS-specific variants.
+Standalone phrase packs like `tips/javascript-tips.json`, `tips/typescript-tips.json`, `tips/league-loading-screen-tips.json`, and `tips/wow-loading-screen-tips.json` can just be plain string arrays when they don't need OS-specific variants.
+
+## Using a single pack
+
+If you only want one pack instead of the platform-specific VS Code bundle, copy any file from `out/` directly into `settings.json`.
+
+Example:
+
+```json
+"chat.agent.thinking.phrases": {
+  "mode": "append",
+  "phrases": [
+    "Prefer `const` by default; reach for `let` only when reassignment is the point.",
+    "Optional chaining keeps nullable paths readable: `user?.profile?.avatarUrl`.",
+    "Don’t use `forEach` with `await`; it won’t wait, and it won’t apologize."
+  ]
+}
+```
+
+Or just paste `out/javascript-tips.json`, `out/typescript-tips.json`, `out/league-loading-screen-tips.json`, or `out/wow-loading-screen-tips.json` as-is.
 
 ## Building
 
@@ -86,15 +146,46 @@ npm install
 npm run build
 ```
 
-This currently reads the VS Code pack from `tips/vscode/`, reads the standalone WoW pack from `tips/wow-loading-screen-tips.json`, and generates ready-to-paste settings files in `out/`.
+This reads the VS Code pack from `tips/vscode/`, discovers standalone packs from `tips/*.json`, and generates ready-to-paste settings files in `out/`.
 
 Generated outputs:
 
 - `out/settings-mac.json`
 - `out/settings-windows.json`
 - `out/settings-linux.json`
+- `out/javascript-tips.json`
+- `out/typescript-tips.json`
+- `out/league-loading-screen-tips.json`
 - `out/vscode-tips.json`
 - `out/wow-loading-screen-tips.json`
+
+Repo layout:
+
+```text
+tips/
+  vscode/
+    shortcuts.json
+    copilot.json
+    git.json
+    terminal.json
+    debugging.json
+    editor.json
+    funny.json
+  javascript-tips.json
+  typescript-tips.json
+  league-loading-screen-tips.json
+  wow-loading-screen-tips.json
+
+out/
+  settings-mac.json
+  settings-windows.json
+  settings-linux.json
+  vscode-tips.json
+  javascript-tips.json
+  typescript-tips.json
+  league-loading-screen-tips.json
+  wow-loading-screen-tips.json
+```
 
 ## Contributing
 
@@ -102,7 +193,7 @@ For now:
 
 - add VS Code tips to the appropriate file in `tips/vscode/`
 - keep each VS Code tip OS-aware with `mac`, `windows`, and `linux`
-- use standalone JSON arrays for packs that don't need platform variants
+- use standalone JSON arrays in `tips/*.json` for packs that don't need platform variants
 - run `npm run build` to regenerate the output
 
 If we add more packs later, the repo structure is already set up for that direction. Tiny repo, mildly ambitious agenda 😌
@@ -118,6 +209,16 @@ If we add more packs later, the repo structure is already set up for that direct
 - [VS Code Tips and Tricks](https://code.visualstudio.com/docs/getstarted/tips-and-tricks)
 - [VS Code Keyboard Shortcuts](https://code.visualstudio.com/docs/configure/keybindings)
 - [Custom Thinking Phrases (v1.110)](https://code.visualstudio.com/updates/v1_110#_custom-thinking-phrases)
+- [16 Modern JavaScript Features That Might Blow Your Mind](https://dev.to/sylwia-lask/16-modern-javascript-features-that-might-blow-your-mind-4h5e)
+- [mbeaudru/modern-js-cheatsheet](https://github.com/mbeaudru/modern-js-cheatsheet)
+- [JavaScript.info](https://javascript.info/)
+- [jellydn/typescript-tips](https://github.com/jellydn/typescript-tips)
+- [Learn X in Y Minutes: TypeScript](https://learnxinyminutes.com/typescript/)
+- [TypeScript Utility Types](https://www.typescriptlang.org/docs/handbook/utility-types.html)
+- [TypeScript 4.9 release notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html)
+- [TypeScript 5.4 release notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-4.html)
+- [League loading screen tips thread](https://www.reddit.com/r/leagueoflegends/comments/6sm4lx/i_have_forged_a_list_of_all_the_loading_screen/)
+- [Rift Trivia fun facts source](https://github.com/Siratish/rift-trivia/blob/6833c15e0f87ccde2300446da7aab025a2e1cdd9/frontend/public/fun-facts.txt#L5)
 - [WoW Loading Screen Tips](https://wowwiki-archive.fandom.com/wiki/Loading_screen_tips)
 
 ## License

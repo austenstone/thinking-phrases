@@ -2,6 +2,7 @@
   "name": "thinking-phrases",
   "version": "1.0.0",
   "description": "Curated thinking phrase packs for VS Code and beyond — like loading screen tips for AI",
+  "type": "module",
   "scripts": {
     "build": "tsx scripts/build.ts"
   },
