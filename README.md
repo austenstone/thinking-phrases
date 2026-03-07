@@ -14,14 +14,6 @@ Every time Copilot is thinking or running a tool, instead of generic loading tex
 
 > *Type /fork in chat to branch your conversation and explore a new direction.*
 
-Right now the repo ships five phrase packs:
-
-- `vscode` — practical shortcuts, Copilot tips, Git, terminal, debugging, editor tricks, and a little flavor text
-- `javascript-tips` — original, modern JavaScript guidance focused on current syntax, async patterns, collection APIs, ESM, and practical language features
-- `typescript-tips` — original, modern TypeScript guidance focused on strictness, inference, utility types, `satisfies`, and current TS 5.x-era patterns
-- `league-loading-screen-tips` — an original League-inspired pack of gameplay advice, lore nods, and Rift-flavored nonsense
-- `wow-loading-screen-tips` — the original World of Warcraft loading tips wrapped in the same settings format
-
 Every generated file in `out/` is already wrapped in the VS Code settings shape, so you can paste any single pack directly into `settings.json`.
 
 ## Quick Start
@@ -48,15 +40,14 @@ By default, tips are set to `"append"` mode — they're added alongside VS Code'
 
 ## Packs
 
-### Pack overview
+### Pack catalog
 
-| Pack | Tips | Style | Output |
-|------|------|-------|--------|
-| `vscode` | 80 | OS-aware VS Code shortcuts + workflows | `out/settings-mac.json`, `out/settings-windows.json`, `out/settings-linux.json`, `out/vscode-tips.json` |
-| `javascript-tips` | 100 | Modern JavaScript language + runtime tips | `out/javascript-tips.json` |
-| `typescript-tips` | 124 | Modern TypeScript patterns + compiler guidance | `out/typescript-tips.json` |
-| `league-loading-screen-tips` | 100 | Original League-inspired gameplay + lore tips | `out/league-loading-screen-tips.json` |
-| `wow-loading-screen-tips` | 109 | WoW loading screen tips in settings format | `out/wow-loading-screen-tips.json` |
+- [`tips/vscode/`](tips/vscode/) — **80 OS-aware VS Code tips** covering shortcuts, Copilot, Git, terminal, debugging, editor features, and a little flavor text. Generated outputs: [`out/settings-mac.json`](out/settings-mac.json), [`out/settings-windows.json`](out/settings-windows.json), [`out/settings-linux.json`](out/settings-linux.json), and [`out/vscode-tips.json`](out/vscode-tips.json).
+- [`tips/javascript-tips.json`](tips/javascript-tips.json) — **100 modern JavaScript tips** focused on current syntax, async patterns, collection APIs, ESM, and practical runtime features. Generated output: [`out/javascript-tips.json`](out/javascript-tips.json).
+- [`tips/ruby-tips.json`](tips/ruby-tips.json) — **108 Ruby tips** focused on core syntax, blocks, collections, classes, method conventions, and idiomatic Ruby style for beginners. Generated output: [`out/ruby-tips.json`](out/ruby-tips.json).
+- [`tips/typescript-tips.json`](tips/typescript-tips.json) — **124 modern TypeScript tips** covering strictness, inference, utility types, `satisfies`, `as const`, and current TS 5.x-era patterns. Generated output: [`out/typescript-tips.json`](out/typescript-tips.json).
+- [`tips/league-loading-screen-tips.json`](tips/league-loading-screen-tips.json) — **100 League-inspired tips** mixing gameplay advice, lore nods, and Rift-flavored nonsense. Generated output: [`out/league-loading-screen-tips.json`](out/league-loading-screen-tips.json).
+- [`tips/wow-loading-screen-tips.json`](tips/wow-loading-screen-tips.json) — **109 WoW loading screen tips** wrapped in the same settings format for easy use in VS Code. Generated output: [`out/wow-loading-screen-tips.json`](out/wow-loading-screen-tips.json).
 
 ### VS Code pack
 
@@ -72,38 +63,6 @@ By default, tips are set to `"append"` mode — they're added alongside VS Code'
 
 **80 tips total** across macOS, Windows, and Linux variants.
 
-### Standalone packs
-
-- 🟨 [JavaScript tips](tips/javascript-tips.json) — 100 original modern JavaScript loading-screen style tips inspired by current language features, practical patterns, and the excellent ecosystem docs/tutorial rabbit hole
-- 🔷 [TypeScript tips](tips/typescript-tips.json) — 124 original TypeScript loading-screen style tips inspired by modern community guidance and official docs
-- 🧠 [League of Legends loading screen tips](tips/league-loading-screen-tips.json) — 100 original League-inspired tips based on classic loading-screen themes, lore references, and general gameplay advice
-- 🐉 [WoW loading screen tips](tips/wow-loading-screen-tips.json) — 109 original World of Warcraft loading tips wrapped in the same settings format
-
-#### JavaScript tips
-
-Focused on modern everyday JS, not dusty interview trivia:
-
-- `?.`, `??`, logical assignment, destructuring, rest/spread
-- `Promise.all`, `Promise.allSettled`, `async` / `await`, dynamic `import()`
-- modern array/object APIs like `.at()`, `toSorted()`, `Object.groupBy()`
-- practical runtime APIs like `AbortController`, `URL`, `Intl`, `BigInt`
-
-#### TypeScript tips
-
-Focused on current TS habits that actually improve codebases:
-
-- `strict`, `unknown`, discriminated unions, `satisfies`, `as const`
-- utility types, template literal types, `ReturnType`, `Parameters`, `NoInfer`
-- modern module config and ESM-aware compiler guidance
-- runtime-validation reminders so types don’t become fake security blankets
-
-#### League + WoW packs
-
-These are deliberately more flavor-heavy than the language packs:
-
-- `league-loading-screen-tips` mixes macro/gameplay advice with lore nods and Rift nonsense
-- `wow-loading-screen-tips` preserves the classic loading-screen vibe in a ready-to-paste format
-
 ## Tip Format
 
 The `vscode` source files contain arrays of objects with platform-specific strings:
@@ -118,7 +77,7 @@ The `vscode` source files contain arrays of objects with platform-specific strin
 
 Mac tips use native symbols (⌘ ⌥ ⇧ ⌃). Windows/Linux tips use spelled-out keys (Ctrl, Alt, Shift).
 
-Standalone phrase packs like `tips/javascript-tips.json`, `tips/typescript-tips.json`, `tips/league-loading-screen-tips.json`, and `tips/wow-loading-screen-tips.json` can just be plain string arrays when they don't need OS-specific variants.
+Standalone phrase packs like `tips/javascript-tips.json`, `tips/ruby-tips.json`, `tips/typescript-tips.json`, `tips/league-loading-screen-tips.json`, and `tips/wow-loading-screen-tips.json` can just be plain string arrays when they don't need OS-specific variants.
 
 ## Using a single pack
 
@@ -137,7 +96,7 @@ Example:
 }
 ```
 
-Or just paste `out/javascript-tips.json`, `out/typescript-tips.json`, `out/league-loading-screen-tips.json`, or `out/wow-loading-screen-tips.json` as-is.
+Or just paste `out/javascript-tips.json`, `out/ruby-tips.json`, `out/typescript-tips.json`, `out/league-loading-screen-tips.json`, or `out/wow-loading-screen-tips.json` as-is.
 
 ## Building
 
@@ -154,6 +113,7 @@ Generated outputs:
 - `out/settings-windows.json`
 - `out/settings-linux.json`
 - `out/javascript-tips.json`
+- `out/ruby-tips.json`
 - `out/typescript-tips.json`
 - `out/league-loading-screen-tips.json`
 - `out/vscode-tips.json`
@@ -172,6 +132,7 @@ tips/
     editor.json
     funny.json
   javascript-tips.json
+  ruby-tips.json
   typescript-tips.json
   league-loading-screen-tips.json
   wow-loading-screen-tips.json
@@ -182,6 +143,7 @@ out/
   settings-linux.json
   vscode-tips.json
   javascript-tips.json
+  ruby-tips.json
   typescript-tips.json
   league-loading-screen-tips.json
   wow-loading-screen-tips.json
@@ -212,6 +174,9 @@ If we add more packs later, the repo structure is already set up for that direct
 - [16 Modern JavaScript Features That Might Blow Your Mind](https://dev.to/sylwia-lask/16-modern-javascript-features-that-might-blow-your-mind-4h5e)
 - [mbeaudru/modern-js-cheatsheet](https://github.com/mbeaudru/modern-js-cheatsheet)
 - [JavaScript.info](https://javascript.info/)
+- [Learn X in Y Minutes: Ruby](https://learnxinyminutes.com/ruby/)
+- [Ruby Style Guide](https://github.com/bbatsov/ruby-style-guide)
+- [Try Ruby](https://try.ruby-lang.org/)
 - [jellydn/typescript-tips](https://github.com/jellydn/typescript-tips)
 - [Learn X in Y Minutes: TypeScript](https://learnxinyminutes.com/typescript/)
 - [TypeScript Utility Types](https://www.typescriptlang.org/docs/handbook/utility-types.html)
