@@ -425,6 +425,22 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 
 		overrides.feeds = parseCsv(keepExistingValue(feedInput, existingFeeds)).map(url => ({ url } satisfies FeedConfig));
 
+		const existingLimit = String(selectedConfig.limit);
+		const limitInput = await text({
+			message: 'How many RSS items should be considered?',
+			initialValue: existingLimit,
+			validate(value) {
+				const parsed = Number(keepExistingValue(value, existingLimit));
+				return Number.isInteger(parsed) && parsed > 0 ? undefined : 'Enter a positive integer.';
+			},
+		});
+
+		if (isCancel(limitInput)) {
+			return cancelFlow('Interactive run cancelled. No settings were changed.');
+		}
+
+		overrides.limit = Number(keepExistingValue(limitInput, existingLimit));
+
 	}
 
 	if (useStocks) {
@@ -432,6 +448,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const symbolInput = await text({
 			message: 'Stock symbols',
 			placeholder: existingSymbols || 'MSFT NVDA TSLA',
+			initialValue: existingSymbols,
 			validate(value) {
 				return normalizeSymbols(parseSymbolInput(keepExistingValue(value, existingSymbols))).length > 0
 					? undefined
@@ -468,6 +485,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const zipCodeInput = await text({
 			message: useEarthquakes && useWeatherAlerts ? 'ZIP code for local earthquake + weather lookups' : useEarthquakes ? 'ZIP code for local earthquake lookups' : 'ZIP code for local weather lookups',
 			placeholder: existingZipCode || '33312',
+			initialValue: existingZipCode,
 			validate(value) {
 				const zipCode = normalizeUsZipCode(keepExistingValue(value, existingZipCode));
 				return zipCode && isValidUsZipCode(zipCode) ? undefined : 'Enter a valid 5-digit US ZIP code.';
@@ -563,6 +581,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonUrl = await text({
 			message: 'JSON endpoint URL',
 			placeholder: existingJsonUrl || 'https://example.com/api/articles.json',
+			initialValue: existingJsonUrl,
 			validate(value) {
 				const resolvedValue = keepExistingValue(value, existingJsonUrl);
 				if (!resolvedValue.trim()) {
@@ -586,6 +605,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonItemsPath = await text({
 			message: 'Array path inside the JSON payload',
 			placeholder: existingItemsPath || 'items',
+			initialValue: existingItemsPath,
 		});
 
 		if (isCancel(customJsonItemsPath)) {
@@ -596,6 +616,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonTitleField = await text({
 			message: 'Title field path',
 			placeholder: existingTitleField || 'title',
+			initialValue: existingTitleField,
 			validate(value) {
 				return keepExistingValue(value, existingTitleField).trim() ? undefined : 'Enter a field path for the title.';
 			},
@@ -609,6 +630,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonContentField = await text({
 			message: 'Optional content field path',
 			placeholder: existingContentField || 'summary',
+			initialValue: existingContentField,
 		});
 
 		if (isCancel(customJsonContentField)) {
@@ -619,6 +641,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonLinkField = await text({
 			message: 'Optional link field path',
 			placeholder: existingLinkField || 'url',
+			initialValue: existingLinkField,
 		});
 
 		if (isCancel(customJsonLinkField)) {
@@ -629,6 +652,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonSourceField = await text({
 			message: 'Optional source field path',
 			placeholder: existingSourceField || 'source.name',
+			initialValue: existingSourceField,
 		});
 
 		if (isCancel(customJsonSourceField)) {
@@ -639,6 +663,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonSourceLabel = await text({
 			message: 'Fallback source label',
 			placeholder: existingSourceLabel || 'My API',
+			initialValue: existingSourceLabel,
 		});
 
 		if (isCancel(customJsonSourceLabel)) {
@@ -649,6 +674,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonDateField = await text({
 			message: 'Optional published date field path',
 			placeholder: existingDateField || 'publishedAt',
+			initialValue: existingDateField,
 		});
 
 		if (isCancel(customJsonDateField)) {
@@ -659,6 +685,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonIdField = await text({
 			message: 'Optional unique ID field path',
 			placeholder: existingIdField || 'id',
+			initialValue: existingIdField,
 		});
 
 		if (isCancel(customJsonIdField)) {
@@ -669,6 +696,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		const customJsonLimit = await text({
 			message: 'How many JSON items should be included?',
 			placeholder: existingJsonLimit,
+			initialValue: existingJsonLimit,
 			validate(value) {
 				const parsed = Number(keepExistingValue(value, existingJsonLimit));
 				return Number.isInteger(parsed) && parsed > 0 ? undefined : 'Enter a positive integer.';
@@ -893,24 +921,6 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 			enabled: modelMode !== 'off',
 			fetchArticleContent: modelMode === 'rewrite-with-context',
 		};
-	}
-
-	if (useRss) {
-		const existingLimit = String(selectedConfig.limit);
-		const limitInput = await text({
-			message: 'How many RSS items should be considered?',
-			initialValue: existingLimit,
-			validate(value) {
-				const parsed = Number(keepExistingValue(value, existingLimit));
-				return Number.isInteger(parsed) && parsed > 0 ? undefined : 'Enter a positive integer.';
-			},
-		});
-
-		if (isCancel(limitInput)) {
-			return cancelFlow('Interactive run cancelled. No settings were changed.');
-		}
-
-		overrides.limit = Number(keepExistingValue(limitInput, existingLimit));
 	}
 
 	overrides.mode = 'replace';

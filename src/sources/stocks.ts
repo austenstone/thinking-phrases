@@ -16,6 +16,21 @@ interface StockQuoteSnapshot {
 
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
+function formatMarketLabel(label?: string): string | undefined {
+  switch (label) {
+    case 'today':
+      return '🟢';
+    case 'close':
+      return '🔒';
+    case 'pre-market':
+      return '🌅';
+    case 'after-hours':
+      return '🌙';
+    default:
+      return label;
+  }
+}
+
 function getMarketPriceDetails(quote: StockQuoteSnapshot): {
   label?: string;
   price?: number;
@@ -52,11 +67,12 @@ export function buildStockPhrase(item: StockItem, config: Config): string {
     parts.push(signedPercent);
   }
 
-  if (config.stockQuotes.includeMarketState && item.marketLabel) {
-    parts.push(item.marketLabel);
+  const formattedMarketLabel = formatMarketLabel(item.marketLabel);
+  if (config.stockQuotes.includeMarketState && formattedMarketLabel) {
+    parts.push(formattedMarketLabel);
   }
 
-  return truncate(parts.join(' — '), config.phraseFormatting.maxLength);
+  return truncate(parts.join(' '), config.phraseFormatting.maxLength);
 }
 
 export async function fetchStockItems(config: Config): Promise<StockItem[]> {

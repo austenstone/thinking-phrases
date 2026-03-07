@@ -4,49 +4,49 @@
 		{
 			"label": "validate-github-commit-format",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --use-github --github-mode repo-commits --github-repo microsoft/vscode --github-max-items 2 --github-since-hours 168",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --use-github --github-mode repo-commits --github-repo microsoft/vscode --github-max-items 2 --github-since-hours 168",
 			"isBackground": false
 		},
 		{
 			"label": "validate-github-commit-display-phrase",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --use-github --github-mode repo-commits --github-repo microsoft/vscode --github-max-items 3 --github-since-hours 168",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --use-github --github-mode repo-commits --github-repo microsoft/vscode --github-max-items 3 --github-since-hours 168",
 			"isBackground": false
 		},
 		{
 			"label": "validate-github-full-diff-model-context",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --use-github --github-mode repo-commits --github-repo microsoft/vscode --github-max-items 1 --github-since-hours 168 --use-models --fetch-article-content --debug",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --use-github --github-mode repo-commits --github-repo microsoft/vscode --github-max-items 1 --github-since-hours 168 --use-models --fetch-article-content --debug",
 			"isBackground": false
 		},
 		{
 			"label": "validate-github-org-feed-fallback",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --use-github --github-mode feed --github-feed-kind organization --github-org github --github-max-items 5",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --use-github --github-mode feed --github-feed-kind organization --github-org github --github-max-items 5",
 			"isBackground": false
 		},
 		{
 			"label": "probe-private-org-feed-auth",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --use-github --github-mode feed --github-feed-kind organization --github-org github --github-max-items 5 --debug",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --use-github --github-mode feed --github-feed-kind organization --github-org github --github-max-items 5 --debug",
 			"isBackground": false
 		},
 		{
 			"label": "validate-saved-github-org-config",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --config configs/github-timeline.config.json --debug",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --config configs/github-timeline.config.json --debug",
 			"isBackground": false
 		},
 		{
 			"label": "validate-feed-handle-dedupe",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --config configs/github-timeline.config.json --debug",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --config configs/github-timeline.config.json --debug",
 			"isBackground": false
 		},
 		{
 			"label": "validate-feed-handle-fix",
 			"type": "shell",
-			"command": "./node_modules/.bin/tsc --noEmit && npm run rss:dry-run -- --config configs/github-timeline.config.json",
+			"command": "./node_modules/.bin/tsc --noEmit && npm run phrases:dry-run -- --config configs/github-timeline.config.json",
 			"isBackground": false
 		},
 		{

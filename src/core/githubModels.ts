@@ -20,6 +20,13 @@ function getGitHubModelsToken(config: GitHubModelsConfig): string | undefined {
     const token = execFileSync('gh', ['auth', 'token'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
+      env: {
+        ...process.env,
+        GITHUB_TOKEN: '',
+        GH_TOKEN: '',
+        GITHUB_ENTERPRISE_TOKEN: '',
+        GH_ENTERPRISE_TOKEN: '',
+      },
     }).trim();
 
     return token || undefined;

@@ -4,7 +4,11 @@
   "target": "auto",
   "verbose": false,
   "debug": false,
-  "feeds": [],
+  "feeds": [
+    {
+      "url": "https://github.blog/feed/"
+    }
+  ],
   "phraseFormatting": {
     "includeSource": true,
     "includeTime": true,
@@ -22,13 +26,27 @@
     "maxArticleContentLength": 6000
   },
   "stockQuotes": {
-    "enabled": false,
+    "enabled": true,
     "symbols": [
       "MSFT",
-      "NVDA",
-      "TSLA",
+      "TQQQ",
+      "GOOG",
       "AMZN",
-      "GOOGL",
+      "ADBE",
+      "SPGI",
+      "NVDA",
+      "VOO",
+      "UNH",
+      "CPRT",
+      "DUOL",
+      "CLSK",
+      "META",
+      "BTC-USD",
+      "SGOV",
+      "IREN",
+      "CIFR",
+      "EL",
+      "WULF",
       "AMD"
     ],
     "includeMarketState": true
@@ -36,8 +54,8 @@
   "hackerNews": {
     "enabled": true,
     "feed": "top",
-    "maxItems": 30,
-    "minScore": 50
+    "maxItems": 10,
+    "minScore": 10
   },
   "earthquakes": {
     "enabled": false,
@@ -49,9 +67,8 @@
     "orderBy": "time"
   },
   "weatherAlerts": {
-    "enabled": false,
-    "zipCode": "",
-    "area": "",
+    "enabled": true,
+    "zipCode": "33312",
     "minimumSeverity": "moderate",
     "limit": 10
   },
@@ -69,15 +86,12 @@
     "maxItems": 10
   },
   "githubActivity": {
-    "enabled": false,
-    "mode": "repo-commits",
-    "repo": "microsoft/vscode",
+    "enabled": true,
+    "mode": "org-commits",
     "org": "github",
-    "branch": "",
     "feedKind": "timeline",
-    "feedUrl": "",
-    "maxItems": 10,
-    "sinceHours": 24,
+    "maxItems": 30,
+    "sinceHours": 1,
     "tokenEnvVar": "GITHUB_TOKEN"
   }
 }

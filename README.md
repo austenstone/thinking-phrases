@@ -262,15 +262,16 @@ The interactive installer includes built-in presets to get started fast:
 The interactive installer can set up a `launchd` scheduler that refreshes your phrases on a timer. If you cloned the repo, you can also install it manually:
 
 ```bash
-npm run rss:install             # default: every 3600s (1 hour)
-npm run rss:install -- 300      # every 5 minutes
-npm run rss:install -- 900 ./configs/stocks-only.config.json
+npm run phrases:schedule             # default: every 3600s (1 hour)
+npm run phrases:schedule -- 300      # every 5 minutes
+npm run phrases:schedule -- 900 ./configs/stocks-only.config.json
 ```
 
 The scheduler runs at the OS level. Your VS Code settings update silently in the background.
 
 ```bash
-npm run rss:uninstall           # remove the scheduler
+npm run phrases:trigger         # run the installed scheduler now (or fall back to a direct run)
+npm run phrases:unschedule      # remove the scheduler
 npx thinking-phrases --uninstall  # remove thinking phrases from settings
 ```
 
@@ -290,8 +291,8 @@ configs/
 ```
 
 ```bash
-npm run rss:run -- --config configs/stocks-only.config.json
-npm run rss:install -- 300 configs/stocks-only.config.json
+npm run phrases:run -- --config configs/stocks-only.config.json
+npm run phrases:schedule -- 300 configs/stocks-only.config.json
 ```
 
 ## Static packs

@@ -1,6 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import type { ArticleItem, Config, FeedConfig, PhraseSource } from '../core/types.js';
-import { fetchText, logDebug, logInfo, relativeTime, singleLine, stripHtml, truncate } from '../core/utils.js';
+import { decodeHtmlEntities, fetchText, logDebug, logInfo, relativeTime, singleLine, stripHtml, truncate } from '../core/utils.js';
 
 type XmlPrimitive = string | number | boolean | null | undefined;
 
@@ -14,7 +14,8 @@ type XmlValue = XmlPrimitive | XmlObject | XmlArray;
 
 function readText(value: XmlValue): string | undefined {
   if (typeof value === 'string') {
-    return value.trim() || undefined;
+    const decoded = decodeHtmlEntities(value).trim();
+    return decoded || undefined;
   }
 
   if (typeof value === 'number' || typeof value === 'boolean') {
@@ -26,7 +27,12 @@ function readText(value: XmlValue): string | undefined {
   }
 
   const textValue = value['#text'];
-  return typeof textValue === 'string' ? textValue.trim() || undefined : undefined;
+  if (typeof textValue !== 'string') {
+    return undefined;
+  }
+
+  const decoded = decodeHtmlEntities(textValue).trim();
+  return decoded || undefined;
 }
 
 function readLink(value: XmlValue): string | undefined {

@@ -10,7 +10,7 @@ if [[ -f "$HOME/.zshrc" ]]; then
 fi
 
 if [[ -n "${THINKING_PHRASES_CONFIG:-}" ]]; then
-  npm run rss:run -- --config "$THINKING_PHRASES_CONFIG"
+  npm run phrases:run -- --config "$THINKING_PHRASES_CONFIG"
 else
-  npm run rss:run
+  npm run phrases:run
 fi

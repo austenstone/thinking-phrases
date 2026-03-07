@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import type { ArticleItem, Config, GitHubActivityConfig, GitHubFeedKind, PhraseSource } from '../core/types.js';
-import { fetchJson, fetchText, logDebug, logInfo, relativeTime, singleLine, truncate } from '../core/utils.js';
+import { USER_AGENT, fetchJson, fetchText, logDebug, logInfo, relativeTime, singleLine, truncate } from '../core/utils.js';
 import { hydrateArticleContent, parseFeedArticles } from './rss.js';
 
 interface GitHubCommitListItem {
@@ -93,23 +93,91 @@ interface GitHubAuthenticatedUser {
 
 const GITHUB_ACCEPT = 'application/vnd.github+json';
 const GITHUB_API_VERSION = '2022-11-28';
+let hasWarnedAboutRejectedGitHubToken = false;
+let hasWarnedAboutInvalidConfiguredToken = false;
 
-function getGitHubToken(config: GitHubActivityConfig): string | undefined {
-  const envToken = process.env[config.tokenEnvVar] ?? process.env.GITHUB_TOKEN;
-  if (envToken && !envToken.includes('replace_me')) {
-    return envToken;
-  }
+interface GitHubTokenCandidate {
+  source: string;
+  token: string;
+}
 
+function isPlaceholderToken(token?: string): boolean {
+  return !token || token.includes('replace_me');
+}
+
+function getGitHubCliToken(): string | undefined {
   try {
     const token = execFileSync('gh', ['auth', 'token'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
+      env: {
+        ...process.env,
+        GITHUB_TOKEN: '',
+        GH_TOKEN: '',
+        GITHUB_ENTERPRISE_TOKEN: '',
+        GH_ENTERPRISE_TOKEN: '',
+      },
     }).trim();
 
     return token || undefined;
   } catch {
     return undefined;
   }
+}
+
+function getGitHubTokenCandidates(config: GitHubActivityConfig): GitHubTokenCandidate[] {
+  const candidates: GitHubTokenCandidate[] = [];
+  const seen = new Set<string>();
+
+  const addCandidate = (source: string, token?: string): void => {
+    if (isPlaceholderToken(token) || !token || seen.has(token)) {
+      return;
+    }
+
+    seen.add(token);
+    candidates.push({ source, token });
+  };
+
+  addCandidate(config.tokenEnvVar, process.env[config.tokenEnvVar]);
+  if (config.tokenEnvVar !== 'GITHUB_TOKEN') {
+    addCandidate('GITHUB_TOKEN', process.env.GITHUB_TOKEN);
+  }
+  addCandidate('gh auth token', getGitHubCliToken());
+
+  return candidates;
+}
+
+async function validateGitHubToken(token: string): Promise<boolean> {
+  try {
+    const response = await fetch('https://api.github.com/user', {
+      headers: {
+        ...buildGitHubHeaders(token),
+        'user-agent': USER_AGENT,
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function getGitHubToken(config: GitHubActivityConfig): Promise<string | undefined> {
+  const candidates = getGitHubTokenCandidates(config);
+
+  for (const candidate of candidates) {
+    if (await validateGitHubToken(candidate.token)) {
+      if (candidate.source === 'gh auth token' && candidates[0] && candidates[0].source !== 'gh auth token' && !hasWarnedAboutInvalidConfiguredToken) {
+        hasWarnedAboutInvalidConfiguredToken = true;
+        console.warn(`Configured ${candidates[0].source} was invalid; using GitHub CLI auth instead`);
+      }
+
+      return candidate.token;
+    }
+  }
+
+  return undefined;
 }
 
 function buildGitHubHeaders(token?: string, accept = GITHUB_ACCEPT): Record<string, string> {
@@ -121,7 +189,16 @@ function buildGitHubHeaders(token?: string, accept = GITHUB_ACCEPT): Record<stri
 }
 
 function isGitHubAuthFailure(error: unknown): boolean {
-  return error instanceof Error && /\((401|403)\)/u.test(error.message);
+  return error instanceof Error && /\(401\)/u.test(error.message);
+}
+
+function warnRejectedGitHubTokenOnce(): void {
+  if (hasWarnedAboutRejectedGitHubToken) {
+    return;
+  }
+
+  hasWarnedAboutRejectedGitHubToken = true;
+  console.warn('GitHub token rejected, retrying without auth');
 }
 
 async function fetchGitHubJson<T>(url: string, token?: string): Promise<T> {
@@ -129,7 +206,7 @@ async function fetchGitHubJson<T>(url: string, token?: string): Promise<T> {
     return await fetchJson<T>(url, buildGitHubHeaders(token));
   } catch (error) {
     if (token && isGitHubAuthFailure(error)) {
-      console.warn('GitHub token rejected, retrying without auth');
+      warnRejectedGitHubTokenOnce();
       return fetchJson<T>(url, buildGitHubHeaders(undefined));
     }
 
@@ -149,7 +226,7 @@ async function fetchGitHubText(url: string, token?: string, accept = 'applicatio
     return await fetchText(url, buildGitHubHeaders(token, accept));
   } catch (error) {
     if (token && isGitHubAuthFailure(error)) {
-      console.warn('GitHub token rejected, retrying without auth');
+      warnRejectedGitHubTokenOnce();
       return fetchText(url, buildGitHubHeaders(undefined, accept));
     }
 
@@ -433,7 +510,7 @@ async function fetchCommitContext(owner: string, repo: string, ref: string, conf
 
 async function fetchRepoCommitArticles(config: Config): Promise<ArticleItem[]> {
   const { owner, repo } = parseRepoSlug(config.githubActivity.repo);
-  const token = getGitHubToken(config.githubActivity);
+  const token = await getGitHubToken(config.githubActivity);
   const params = new URLSearchParams({
     per_page: String(config.githubActivity.maxItems),
     since: new Date(Date.now() - config.githubActivity.sinceHours * 60 * 60 * 1000).toISOString(),
@@ -462,7 +539,7 @@ async function fetchRepoCommitArticles(config: Config): Promise<ArticleItem[]> {
 }
 
 async function fetchOrgCommitArticles(config: Config): Promise<ArticleItem[]> {
-  const token = getGitHubToken(config.githubActivity);
+  const token = await getGitHubToken(config.githubActivity);
   const params = new URLSearchParams({ per_page: String(Math.min(Math.max(config.githubActivity.maxItems * 10, 50), 100)) });
   const eventsUrl = `https://api.github.com/orgs/${config.githubActivity.org}/events?${params.toString()}`;
   logInfo(config, `Fetching GitHub org events from ${eventsUrl}`);
@@ -538,7 +615,7 @@ async function resolveFeedUrl(config: Config, token?: string): Promise<string> {
 }
 
 async function fetchGitHubFeedArticles(config: Config): Promise<ArticleItem[]> {
-  const token = getGitHubToken(config.githubActivity);
+  const token = await getGitHubToken(config.githubActivity);
   let feedUrl: string | undefined;
   try {
     feedUrl = await resolveFeedUrl(config, token);
