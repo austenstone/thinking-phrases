@@ -84,18 +84,6 @@ evaluators:
     string:
       contains: "["
 
-  # Built-in LLM-as-judge evaluators (uses: github/<name>)
+  # Similarity: are the generated phrases close to our expected output?
   - name: similarity
     uses: github/similarity
-
-  - name: relevance
-    uses: github/relevance
-
-  - name: groundedness
-    uses: github/groundedness
-
-  - name: coherence
-    uses: github/coherence
-
-  - name: fluency
-    uses: github/fluency

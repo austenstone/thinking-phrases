@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { formatGitHubCommitPhrase, formatGitHubFeedPhrase } from '../core/phraseFormats.js';
-import type { ArticleItem, Config, GitHubActivityConfig, GitHubFeedKind, PhraseSource } from '../core/types.js';
+import type { ArticleItem, Config, GitHubActivityConfig, GitHubFeedKind, PhraseFormatTemplates, PhraseSource } from '../core/types.js';
 import { USER_AGENT, fetchJson, fetchText, logDebug, logInfo, relativeTime, singleLine, truncate } from '../core/utils.js';
 import { hydrateArticleContent, parseFeedArticles } from './rss.js';
 
@@ -331,7 +331,7 @@ function buildShortShaLabel(detail: GitHubCommitDetail): string | undefined {
   return sha ? sha.slice(0, 7) : undefined;
 }
 
-function buildCommitDisplayPhrase(repoLabel: string, detail: GitHubCommitDetail): string {
+function buildCommitDisplayPhrase(repoLabel: string, detail: GitHubCommitDetail, templates?: PhraseFormatTemplates): string {
   return formatGitHubCommitPhrase({
     headline: firstCommitLine(detail.commit?.message),
     delta: buildCommitDeltaLabel(detail),
@@ -339,14 +339,14 @@ function buildCommitDisplayPhrase(repoLabel: string, detail: GitHubCommitDetail)
     sha: buildShortShaLabel(detail),
     author: detail.author?.login?.trim(),
     time: relativeTime(detail.commit?.author?.date),
-  });
+  }, { template: templates?.githubCommit });
 }
 
 function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
-function buildGitHubFeedDisplayPhrase(article: ArticleItem): string | undefined {
+function buildGitHubFeedDisplayPhrase(article: ArticleItem, templates?: PhraseFormatTemplates): string | undefined {
   const title = article.title?.trim();
   if (!title) {
     return undefined;
@@ -357,7 +357,7 @@ function buildGitHubFeedDisplayPhrase(article: ArticleItem): string | undefined 
   const maybeHandle = source && source !== 'GitHub' ? source : undefined;
 
   if (!maybeHandle) {
-    return formatGitHubFeedPhrase({ action: title, time });
+    return formatGitHubFeedPhrase({ action: title, time }, { template: templates?.githubFeed });
   }
 
   // Strip the actor name from the start of the title if present (exact or case-insensitive)
@@ -365,7 +365,7 @@ function buildGitHubFeedDisplayPhrase(article: ArticleItem): string | undefined 
   const strippedTitle = title.replace(handlePattern, '').trim();
   const actionText = strippedTitle || title;
 
-  return formatGitHubFeedPhrase({ handle: maybeHandle, action: actionText, time });
+  return formatGitHubFeedPhrase({ handle: maybeHandle, action: actionText, time }, { template: templates?.githubFeed });
 }
 
 function repoNameFromEvent(repo?: string): string {
@@ -423,7 +423,7 @@ function buildOrganizationEventLink(event: GitHubOrgEvent): string | undefined {
     ?? event.payload?.release?.html_url;
 }
 
-function buildOrganizationEventArticle(event: GitHubOrgEvent): ArticleItem | null {
+function buildOrganizationEventArticle(event: GitHubOrgEvent, templates?: PhraseFormatTemplates): ArticleItem | null {
   const title = buildOrganizationEventTitle(event);
   if (!title) {
     return null;
@@ -443,11 +443,11 @@ function buildOrganizationEventArticle(event: GitHubOrgEvent): ArticleItem | nul
 
   return {
     ...article,
-    displayPhrase: buildGitHubFeedDisplayPhrase(article),
+    displayPhrase: buildGitHubFeedDisplayPhrase(article, templates),
   };
 }
 
-function buildCommitArticle(repoLabel: string, detail: GitHubCommitDetail, content?: string): ArticleItem {
+function buildCommitArticle(repoLabel: string, detail: GitHubCommitDetail, content?: string, templates?: PhraseFormatTemplates): ArticleItem {
   const datetime = detail.commit?.author?.date;
   const repoName = repoDisplayName(repoLabel);
   const authorHandle = detail.author?.login?.trim();
@@ -464,7 +464,7 @@ function buildCommitArticle(repoLabel: string, detail: GitHubCommitDetail, conte
     type: 'article',
     id: `github:${repoLabel}:${detail.sha}`,
     title: titleBits.join(' — '),
-		displayPhrase: buildCommitDisplayPhrase(repoLabel, detail),
+		displayPhrase: buildCommitDisplayPhrase(repoLabel, detail, templates),
     link: detail.html_url,
     source: repoName,
     datetime,

@@ -34,7 +34,11 @@ function buildBasicArticlePhrase(article: ArticleItem, config: Config): string |
   return truncate(
     formatArticlePhrase(
       { source: article.source, title: article.title, time: article.time },
-      { includeSource: config.phraseFormatting.includeSource, includeTime: config.phraseFormatting.includeTime },
+      {
+        includeSource: config.phraseFormatting.includeSource,
+        includeTime: config.phraseFormatting.includeTime,
+        template: config.phraseFormatting.templates?.article,
+      },
     ),
     config.phraseFormatting.maxLength,
   );

@@ -52,7 +52,10 @@ export async function fetchHackerNewsArticles(config: import('../core/types.js')
       const trimmedTitle = item.title?.trim() ?? '';
       const relativeTimestamp = relativeTime(datetime);
       const score = typeof item.score === 'number' ? `+${item.score}` : undefined;
-      const displayPhrase = formatHackerNewsPhrase({ title: trimmedTitle, score, time: relativeTimestamp });
+      const displayPhrase = formatHackerNewsPhrase(
+        { title: trimmedTitle, score, time: relativeTimestamp },
+        { template: config.phraseFormatting.templates?.hackerNews },
+      );
 
       return {
         type: 'article' as const,

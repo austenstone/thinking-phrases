@@ -71,7 +71,7 @@ export function buildStockPhrase(item: StockItem, config: Config): string {
       price: formatPrice(item.price, item.currency),
       change: signedPercent,
       market: config.stockQuotes.includeMarketState ? formattedMarketLabel : undefined,
-    }),
+    }, { template: config.phraseFormatting.templates?.stock }),
     config.phraseFormatting.maxLength,
   );
 }
