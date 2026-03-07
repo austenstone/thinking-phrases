@@ -209,7 +209,7 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 		initialValue: 'dynamic',
 		options: [
 			{ value: 'dynamic', label: 'Dynamic phrases', hint: 'RSS, stocks, models, scheduler support' },
-			{ value: 'static', label: 'Static pack', hint: `${staticPacks.length} generated packs available` },
+			{ value: 'static', label: 'Static pack', hint: `${staticPacks.length} static packs available` },
 			{ value: 'uninstall', label: 'Uninstall', hint: 'Remove thinking phrases and scheduler' },
 		],
 	});
