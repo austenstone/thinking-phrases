@@ -11,10 +11,19 @@ export interface FeedConfig {
 	source?: string;
 }
 
+export interface PhraseFormatTemplates {
+	article?: string;
+	hackerNews?: string;
+	stock?: string;
+	githubCommit?: string;
+	githubFeed?: string;
+}
+
 export interface PhraseFormatting {
 	includeSource: boolean;
 	includeTime: boolean;
 	maxLength: number;
+	templates?: PhraseFormatTemplates;
 }
 
 export interface GitHubModelsConfig {
@@ -111,6 +120,7 @@ export interface CliOverrides extends Partial<Config> {
 	dryRun?: boolean;
 	interactive?: boolean;
 	uninstall?: boolean;
+	triggerSchedulerNow?: boolean;
 	createNewConfig?: boolean;
 	installScheduler?: boolean;
 	uninstallScheduler?: boolean;

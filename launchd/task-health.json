@@ -1,0 +1,30 @@
+{
+  "status": "succeeded",
+  "phase": "completed",
+  "startedAt": "2026-03-07T15:53:05.233Z",
+  "updatedAt": "2026-03-07T15:53:06.303Z",
+  "dryRun": true,
+  "configPath": "/Users/austenstone/source/vscode-copilot-tips/configs/rss-settings.config.json",
+  "settingsPath": "/Users/austenstone/Library/Application Support/Code - Insiders/User/settings.json",
+  "pid": 90739,
+  "warnings": [],
+  "sources": [
+    {
+      "type": "github-activity",
+      "status": "succeeded",
+      "startedAt": "2026-03-07T15:53:05.238Z",
+      "completedAt": "2026-03-07T15:53:06.296Z",
+      "durationMs": 1058,
+      "itemCount": 3
+    }
+  ],
+  "lastMessage": "Dry run generated 3 phrases",
+  "summary": {
+    "sourceCount": 1,
+    "articleCount": 3,
+    "stockCount": 0,
+    "phraseCount": 3
+  },
+  "completedAt": "2026-03-07T15:53:06.303Z",
+  "durationMs": 1070
+}

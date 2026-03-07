@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { formatGitHubCommitPhrase, formatGitHubFeedPhrase } from '../core/phraseFormats.js';
 import type { ArticleItem, Config, GitHubActivityConfig, GitHubFeedKind, PhraseSource } from '../core/types.js';
 import { USER_AGENT, fetchJson, fetchText, logDebug, logInfo, relativeTime, singleLine, truncate } from '../core/utils.js';
 import { hydrateArticleContent, parseFeedArticles } from './rss.js';
@@ -331,21 +332,14 @@ function buildShortShaLabel(detail: GitHubCommitDetail): string | undefined {
 }
 
 function buildCommitDisplayPhrase(repoLabel: string, detail: GitHubCommitDetail): string {
-  const repoName = repoDisplayName(repoLabel);
-  const shortShaLabel = buildShortShaLabel(detail);
-  const commitTitle = firstCommitLine(detail.commit?.message);
-  const deltaLabel = buildCommitDeltaLabel(detail);
-  const authorHandle = detail.author?.login?.trim();
-  const time = relativeTime(detail.commit?.author?.date);
-
-  const headline = `${repoName}${shortShaLabel ? `@${shortShaLabel}` : ''} ${commitTitle}`.trim();
-  const metadata = [
-    deltaLabel ? `(${deltaLabel})` : undefined,
-    time,
-    authorHandle ? `- @${authorHandle}` : undefined,
-  ].filter(Boolean);
-
-  return [headline, ...metadata].join(' ');
+  return formatGitHubCommitPhrase({
+    headline: firstCommitLine(detail.commit?.message),
+    delta: buildCommitDeltaLabel(detail),
+    repo: repoDisplayName(repoLabel),
+    sha: buildShortShaLabel(detail),
+    author: detail.author?.login?.trim(),
+    time: relativeTime(detail.commit?.author?.date),
+  });
 }
 
 function escapeRegExp(input: string): string {
@@ -363,16 +357,15 @@ function buildGitHubFeedDisplayPhrase(article: ArticleItem): string | undefined 
   const maybeHandle = source && source !== 'GitHub' ? source : undefined;
 
   if (!maybeHandle) {
-    return time ? `${title} — ${time}` : title;
+    return formatGitHubFeedPhrase({ action: title, time });
   }
 
   // Strip the actor name from the start of the title if present (exact or case-insensitive)
   const handlePattern = new RegExp(`^${escapeRegExp(maybeHandle)}\\s*`, 'iu');
   const strippedTitle = title.replace(handlePattern, '').trim();
   const actionText = strippedTitle || title;
-  const finalTitle = `@${maybeHandle} ${actionText}`;
 
-  return time ? `${finalTitle} — ${time}` : finalTitle;
+  return formatGitHubFeedPhrase({ handle: maybeHandle, action: actionText, time });
 }
 
 function repoNameFromEvent(repo?: string): string {

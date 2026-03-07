@@ -205,17 +205,35 @@ export async function promptForInteractiveOverrides(config: Config, options: Int
 	}
 
 	const installKind = await select({
-		message: 'What kind of thinking phrases do you want to install?',
+		message: installedScheduler?.installed
+			? 'What do you want to do with thinking phrases?'
+			: 'What kind of thinking phrases do you want to install?',
 		initialValue: 'dynamic',
 		options: [
 			{ value: 'dynamic', label: 'Dynamic phrases', hint: 'RSS, stocks, models, scheduler support' },
 			{ value: 'static', label: 'Static pack', hint: `${staticPacks.length} static packs available` },
+			...(installedScheduler?.installed
+				? [{ value: 'trigger', label: 'Trigger installed scheduler now', hint: 'Run the current launchd job immediately' }]
+				: []),
 			{ value: 'uninstall', label: 'Uninstall', hint: 'Remove thinking phrases and scheduler' },
 		],
 	});
 
 	if (isCancel(installKind)) {
 		return cancelFlow('Interactive run cancelled. No settings were changed.');
+	}
+
+	if (installKind === 'trigger') {
+		note(
+			[
+				`${pc.bold('Action')}    ${pc.green('trigger installed scheduler now')}`,
+				`${pc.bold('Scheduler')} ${pc.cyan(installedScheduler?.label ?? 'com.austenstone.thinking-phrases.rss')}`,
+				`${pc.bold('Config')}     ${pc.yellow(formatConfigPathForDisplay(installedScheduler?.configPath ?? CONFIG_PATH))}`,
+			].join('\n'),
+			'Run summary',
+		);
+
+		return finishFlow({ triggerSchedulerNow: true }, 'Triggering installed scheduler…');
 	}
 
 	if (installKind === 'uninstall') {

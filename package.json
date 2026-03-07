@@ -42,9 +42,13 @@
     "phrases:interactive": "tsx scripts/update-thinking-phrases.ts --interactive",
     "phrases:remove": "tsx scripts/update-thinking-phrases.ts --uninstall",
     "phrases:run": "tsx scripts/update-thinking-phrases.ts",
+    "phrases:health": "tsx scripts/show-thinking-phrases-health.ts",
     "phrases:schedule": "zsh scripts/install-thinking-phrases-scheduler.zsh",
     "phrases:unschedule": "zsh scripts/uninstall-thinking-phrases-scheduler.zsh",
-    "phrases:trigger": "zsh scripts/trigger-thinking-phrases-scheduler.zsh"
+    "phrases:trigger": "zsh scripts/trigger-thinking-phrases-scheduler.zsh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@azure-rest/ai-inference": "^1.0.0-beta.6",
@@ -59,7 +63,8 @@
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
     "@types/node": "^25.3.5",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=18"

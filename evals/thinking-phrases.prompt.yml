@@ -1,0 +1,101 @@
+name: Thinking Phrases Generator
+description: >
+  Evaluates GitHub Models for generating concise VS Code "thinking phrases"
+  from news articles, commits, and content items. Phrases appear as status bar
+  text in VS Code while Copilot is processing, so they must be short, factual,
+  concrete, and interesting.
+model: openai/gpt-4.1
+modelParameters:
+  temperature: 0.2
+  max_tokens: 300
+  response_format:
+    type: json_object
+messages:
+  - role: user
+    content: |
+      {
+        "instruction": "Create concise VS Code thinking phrases from these normalized content items. Return JSON only in this shape: {\"phrases\":[\"...\"]}. Each phrase must be factual, concrete, and at most {{maxLength}} characters. You may emit multiple phrases for one item when it has multiple distinct takeaways. Return at most {{maxPhrasesPerArticle}} phrases per item. Prefer concrete details like numbers, locations, dates, features, examples, or outcomes. Avoid vague rewrites of the headline.",
+        "maxLength": {{maxLength}},
+        "maxPhrasesPerArticle": {{maxPhrasesPerArticle}},
+        "items": {{items}}
+      }
+testData:
+  # --- RSS / blog article inputs ---
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"GitHub Copilot now supports GPT-4.1 in VS Code","source":"GitHub Blog","time":"2026-03-01","content":"GitHub announced Copilot now uses GPT-4.1 for code completions, delivering 30% faster responses and improved multi-file context.","link":"https://github.blog/copilot-gpt41"}]
+    expected: '{"phrases":["Copilot now uses GPT-4.1 — 30% faster responses and better multi-file context","GitHub Copilot upgraded to GPT-4.1 in VS Code"]}'
+
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"Node.js 24 released with native TypeScript support","source":"Node.js Blog","time":"2026-02-20","content":"Node.js 24 ships with built-in TypeScript execution via --experimental-strip-types, plus a new permissions model for sandboxed scripts.","link":"https://nodejs.org/blog/node24"}]
+    expected: '{"phrases":["Node.js 24 ships native TypeScript execution via --experimental-strip-types","Node.js 24 adds sandboxed permissions model for scripts"]}'
+
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"M4.7 earthquake strikes near Salton Sea, California","source":"USGS","time":"2026-03-05T08:12:00Z","content":"A magnitude 4.7 earthquake was recorded 12 km NE of Bombay Beach, CA at 08:12 UTC. No tsunami warning issued. Depth: 8.3 km.","link":"https://earthquake.usgs.gov/earthquakes/eventpage/ci12345"}]
+    expected: '{"phrases":["M4.7 earthquake near Bombay Beach, CA — depth 8.3 km, no tsunami warning"]}'
+
+  # --- Hacker News style input ---
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"Show HN: I built a Rust-based SQLite alternative that's 10x faster for reads","source":"Hacker News","time":"2026-03-06","content":"TurboQL is a new embedded database written in Rust. Benchmarks show 10x read throughput vs SQLite on YCSB workload B. MIT licensed.","link":"https://news.ycombinator.com/item?id=99999"}]
+    expected: '{"phrases":["TurboQL: Rust-based SQLite alternative with 10x read throughput on YCSB","New MIT-licensed embedded DB in Rust benchmarks 10x faster reads than SQLite"]}'
+
+  # --- GitHub commit input ---
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"feat: add inline chat quick-fix for diagnostics (#12345)","source":"microsoft/vscode","time":"2026-03-04","content":"Adds a new code action that lets you fix lint errors and diagnostics directly from Copilot inline chat. Supports TypeScript, Python, and Java.","link":"https://github.com/microsoft/vscode/commit/abc123"}]
+    expected: '{"phrases":["VS Code: fix lint errors via Copilot inline chat — supports TS, Python, Java","New code action: Copilot inline chat quick-fix for diagnostics"]}'
+
+  # --- Multiple items in one batch ---
+  - maxLength: "140"
+    maxPhrasesPerArticle: "1"
+    items: >
+      [{"title":"TSLA up 8% on record Q1 deliveries","source":"Yahoo Finance","time":"2026-03-06","content":"Tesla delivered 495,000 vehicles in Q1 2026, beating estimates of 460,000. Stock jumped 8% in pre-market trading.","link":""},{"title":"Severe thunderstorm warning for Broward County","source":"NWS Miami","time":"2026-03-06T14:00:00Z","content":"The National Weather Service issued a severe thunderstorm warning for Broward County until 5:00 PM EDT. Hail up to 1 inch and 60 mph wind gusts possible.","link":""}]
+    expected: '{"phrases":["TSLA +8%: Tesla delivered 495K vehicles in Q1, beating 460K estimate","Severe thunderstorm warning for Broward County — 60 mph gusts, 1-inch hail until 5 PM"]}'
+
+  # --- Edge case: very short input ---
+  - maxLength: "100"
+    maxPhrasesPerArticle: "1"
+    items: >
+      [{"title":"Docker Desktop 5.0 released","source":"Docker Blog","time":"2026-03-01","content":"","link":"https://docker.com/blog/dd5"}]
+    expected: '{"phrases":["Docker Desktop 5.0 released"]}'
+
+  # --- Edge case: content-heavy article, must distill ---
+  - maxLength: "140"
+    maxPhrasesPerArticle: "2"
+    items: >
+      [{"title":"The State of JavaScript 2025 Survey Results","source":"stateofjs.com","time":"2026-01-15","content":"React remains #1 framework at 82% usage. Vite overtook webpack as the default bundler (71% vs 43%). TypeScript adoption hit 92% among respondents. Bun usage tripled year-over-year to 34%. Tailwind CSS leads styling at 67%. Testing: Vitest surpassed Jest for the first time at 51% vs 48%.","link":"https://stateofjs.com/2025"}]
+    expected: '{"phrases":["State of JS 2025: TypeScript at 92%, Vite overtakes webpack, Vitest surpasses Jest","React still #1 at 82% usage; Bun tripled to 34%; Tailwind leads styling at 67%"]}'
+
+evaluators:
+  # Structural: response must be valid JSON with a "phrases" array
+  - name: Valid JSON with phrases array
+    string:
+      contains: '"phrases"'
+
+  - name: Contains array brackets
+    string:
+      contains: "["
+
+  # Built-in LLM-as-judge evaluators (uses: github/<name>)
+  - name: similarity
+    uses: github/similarity
+
+  - name: relevance
+    uses: github/relevance
+
+  - name: groundedness
+    uses: github/groundedness
+
+  - name: coherence
+    uses: github/coherence
+
+  - name: fluency
+    uses: github/fluency

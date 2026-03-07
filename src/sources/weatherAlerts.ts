@@ -1,3 +1,4 @@
+import { formatWeatherNoAlertsPhrase } from '../core/phraseFormats.js';
 import type { ArticleItem, PhraseSource, WeatherSeverity } from '../core/types.js';
 import { fetchJson, fetchUsZipLocation, logInfo, relativeTime, truncate } from '../core/utils.js';
 
@@ -92,7 +93,7 @@ function buildNoAlertsArticle(context: WeatherLookupContext): ArticleItem {
     id: `weather-alert:none:${context.locationLabel.toLowerCase()}`,
     source: 'Weather.gov',
     title: `No active alerts near ${context.locationLabel}`,
-    displayPhrase: `Weather.gov — No active alerts near ${context.locationLabel}`,
+    displayPhrase: formatWeatherNoAlertsPhrase({ location: context.locationLabel }),
     link: context.lookupUrl,
     content: `Lookup: ${context.lookupUrl}`,
     articleContent: `No active weather alerts are currently active near ${context.locationLabel}. Lookup: ${context.lookupUrl}`,

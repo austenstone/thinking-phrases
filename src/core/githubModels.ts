@@ -35,7 +35,7 @@ function getGitHubModelsToken(config: GitHubModelsConfig): string | undefined {
   }
 }
 
-function extractModelPhrases(input: string): string[] {
+export function extractModelPhrases(input: string): string[] {
   const candidate = (input.match(/```(?:json)?\s*([\s\S]*?)```/u)?.[1] ?? input).trim();
 
   try {
@@ -108,7 +108,7 @@ async function runGitHubModelsPrompt(config: GitHubModelsConfig, content: string
   return text;
 }
 
-function chunkArticles(articles: ArticleItem[], config: GitHubModelsConfig): ArticleItem[][] {
+export function chunkArticles(articles: ArticleItem[], config: GitHubModelsConfig): ArticleItem[][] {
   const chunks: ArticleItem[][] = [];
   const estimatedPerChunk = Math.max(1, Math.floor(config.maxTokens / Math.max(80, config.maxPhrasesPerArticle * 80)));
   const defaultChunkSize = Math.max(1, Math.min(config.maxInputItems, estimatedPerChunk));

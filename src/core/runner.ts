@@ -15,6 +15,8 @@ import {
 import { DEFAULT_SCHEDULER_INTERVAL_SECONDS, formatConfigPathForDisplay, getInstalledSchedulerInfo } from './scheduler.js';
 import { dynamicSources } from './sourceCatalog.js';
 import { getStaticPackByPath } from './staticPacks.js';
+import { TaskHealthTracker } from './taskHealth.js';
+import { formatArticlePhrase } from './phraseFormats.js';
 import type { ArticleItem, Config } from './types.js';
 import { dedupePhrases, loadDotEnv, logInfo, resolveSettingsPath, truncate } from './utils.js';
 import { buildStockPhrase } from '../sources/stocks.js';
@@ -29,18 +31,13 @@ function buildBasicArticlePhrase(article: ArticleItem, config: Config): string |
     return null;
   }
 
-  const parts: string[] = [];
-  if (config.phraseFormatting.includeSource && article.source?.trim()) {
-    parts.push(article.source.trim());
-  }
-
-  parts.push(article.title.trim());
-
-  if (config.phraseFormatting.includeTime && article.time?.trim()) {
-    parts.push(article.time.trim());
-  }
-
-  return truncate(parts.join(' — '), config.phraseFormatting.maxLength);
+  return truncate(
+    formatArticlePhrase(
+      { source: article.source, title: article.title, time: article.time },
+      { includeSource: config.phraseFormatting.includeSource, includeTime: config.phraseFormatting.includeTime },
+    ),
+    config.phraseFormatting.maxLength,
+  );
 }
 
 function buildBasicArticlePhrases(articles: ArticleItem[], config: Config): string[] {
@@ -64,6 +61,11 @@ function installMacScheduler(intervalSeconds: number, configPath?: string): void
 function uninstallMacScheduler(): void {
   const uninstallPath = resolve(process.cwd(), 'scripts/uninstall-rss-updater.zsh');
   execFileSync('zsh', [uninstallPath], { stdio: 'inherit' });
+}
+
+function triggerMacSchedulerNow(): void {
+  const triggerPath = resolve(process.cwd(), 'scripts/trigger-thinking-phrases-scheduler.zsh');
+  execFileSync('zsh', [triggerPath], { stdio: 'inherit' });
 }
 
 function syncGitHubLookbackToScheduler(config: Config, intervalSeconds: number): Config {
@@ -91,6 +93,7 @@ export async function runDynamicPhrases(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const isInteractive = Boolean(args.interactive);
   let uninstall = Boolean(args.uninstall);
+  let triggerSchedulerNow = Boolean(args.triggerSchedulerNow);
   let createNewConfig = Boolean(args.createNewConfig);
   let dryRun = Boolean(args.dryRun);
   let installScheduler = Boolean(args.installScheduler);
@@ -151,6 +154,7 @@ export async function runDynamicPhrases(): Promise<void> {
 
       interactivePass += 1;
       uninstall = Boolean(interactiveOverrides.uninstall);
+      triggerSchedulerNow = Boolean(interactiveOverrides.triggerSchedulerNow);
       createNewConfig = Boolean(interactiveOverrides.createNewConfig);
       dryRun = Boolean(interactiveOverrides.dryRun);
       installScheduler = Boolean(interactiveOverrides.installScheduler);
@@ -164,6 +168,21 @@ export async function runDynamicPhrases(): Promise<void> {
     }
 
     const settingsPath = resolveSettingsPath(config.target, config.settingsPath);
+
+    if (triggerSchedulerNow) {
+      if (process.platform !== 'darwin') {
+        throw new Error('Scheduler triggering is currently only available on macOS.');
+      }
+
+      const installedScheduler = getInstalledSchedulerInfo();
+      if (!installedScheduler.installed) {
+        throw new Error('No macOS scheduler is currently installed.');
+      }
+
+      console.log(pc.cyan('Triggering macOS launchd scheduler now...'));
+      triggerMacSchedulerNow();
+      return;
+    }
 
     if (uninstall) {
       const removedThinkingPhrases = removeVsCodeThinkingPhrases(settingsPath);
@@ -249,127 +268,172 @@ export async function runDynamicPhrases(): Promise<void> {
 
     validateConfig(config);
 
-    const enabledSources = dynamicSources.filter(source => source.isEnabled(config));
-    logInfo(config, `Running ${enabledSources.length} dynamic source(s)`);
-
-    let phrases: string[];
+    const healthTracker = new TaskHealthTracker({
+      dryRun,
+      configPath,
+      settingsPath,
+    });
 
     try {
+      const enabledSources = dynamicSources.filter(source => source.isEnabled(config));
+      healthTracker.setSources(enabledSources.map(source => source.type));
+      healthTracker.setPhase('fetching-sources', `Running ${enabledSources.length} dynamic source${enabledSources.length === 1 ? '' : 's'}`);
+      logInfo(config, `Running ${enabledSources.length} dynamic source(s)`);
+
+      let phrases: string[];
+
       startInteractiveProgress(`Fetching ${enabledSources.length} dynamic source${enabledSources.length === 1 ? '' : 's'}`);
-      const sourceItems = (await Promise.all(enabledSources.map(source => source.fetch(config)))).flat();
+      const sourceItems = (
+        await Promise.all(
+          enabledSources.map(async source => {
+            healthTracker.startSource(source.type);
+            try {
+              const items = await source.fetch(config);
+              healthTracker.completeSource(source.type, items.length);
+              return items;
+            } catch (error: unknown) {
+              const message = error instanceof Error ? error.message : String(error);
+              healthTracker.failSource(source.type, message);
+              throw error;
+            }
+          }),
+        )
+      ).flat();
       const articles = sourceItems.filter((item): item is ArticleItem => item.type === 'article');
       const stocks = sourceItems.filter(item => item.type === 'stock');
 
       startInteractiveProgress(`Preparing ${sourceItems.length} fetched item${sourceItems.length === 1 ? '' : 's'}`);
+      healthTracker.setPhase('formatting-phrases', `Preparing ${sourceItems.length} fetched item${sourceItems.length === 1 ? '' : 's'}`);
       const stockPhrases = dedupePhrases(stocks.map(stock => buildStockPhrase(stock, config)));
       const fallbackArticlePhrases = buildBasicArticlePhrases(articles, config);
       const articlePhrases = config.githubModels.enabled && articles.length > 0
         ? await buildModelArticlePhrases(articles, config, {
-            onProgress: startInteractiveProgress,
+            onProgress: (message: string) => {
+              startInteractiveProgress(message);
+              healthTracker.setPhase('formatting-phrases', message);
+            },
           }).catch((error: unknown) => {
             const message = error instanceof Error ? error.message : String(error);
-            console.warn(`GitHub Models formatting skipped — ${message}`);
+            const warning = `GitHub Models formatting skipped — ${message}`;
+            console.warn(warning);
+            healthTracker.addWarning(warning);
             startInteractiveProgress('GitHub Models unavailable, falling back to feed phrases');
+            healthTracker.setPhase('formatting-phrases', 'GitHub Models unavailable, falling back to feed phrases');
             return fallbackArticlePhrases;
           })
         : fallbackArticlePhrases;
 
       phrases = dedupePhrases([...stockPhrases, ...articlePhrases]);
       stopInteractiveProgress(dryRun ? `Dry run ready — generated ${phrases.length} phrases` : `Generated ${phrases.length} phrases`);
+      if (phrases.length === 0) {
+        throw new Error('No thinking phrases were generated from the configured sources.');
+      }
+
+      const summary = {
+        sourceCount: enabledSources.length,
+        articleCount: articles.length,
+        stockCount: stocks.length,
+        phraseCount: phrases.length,
+      };
+
+      if (dryRun) {
+        console.log(pc.bold(pc.cyan(`Dry run only — would write ${phrases.length} phrases to ${settingsPath}`)));
+        console.log(pc.dim('Preview:'));
+        for (const phrase of phrases.slice(0, 5)) {
+          console.log(`${pc.green('•')} ${phrase}`);
+        }
+
+        if (!isInteractive) {
+          healthTracker.succeed(summary, `Dry run generated ${phrases.length} phrases`);
+          return;
+        }
+
+        const nextAction = await promptForPostDryRunAction('dynamic phrases');
+        if (!nextAction || nextAction === 'exit') {
+          healthTracker.succeed(summary, `Dry run generated ${phrases.length} phrases`);
+          outro(pc.yellow('Interactive run finished after preview. No settings were changed.'));
+          return;
+        }
+
+        if (nextAction === 'edit') {
+          healthTracker.succeed(summary, `Dry run generated ${phrases.length} phrases`);
+          continue;
+        }
+
+        dryRun = false;
+        healthTracker.setDryRun(false);
+        if (process.platform === 'darwin') {
+          const schedulerOverrides = await promptForDynamicSchedulerAfterDryRun();
+          if (!schedulerOverrides) {
+            return;
+          }
+
+          installScheduler = Boolean(schedulerOverrides.installScheduler);
+          schedulerIntervalSeconds = schedulerOverrides.schedulerIntervalSeconds ?? schedulerIntervalSeconds;
+          config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
+        }
+
+        outro(pc.green('Installing dynamic phrases…'));
+      }
+
+      if (isInteractive) {
+        if (createNewConfig) {
+          const namedConfigPath = await promptForConfigName(config);
+          if (!namedConfigPath) {
+            outro(pc.yellow('Interactive run cancelled. No settings were changed.'));
+            return;
+          }
+
+          configPath = resolveConfigPath(namedConfigPath);
+          schedulerConfigPath = namedConfigPath;
+          createNewConfig = false;
+        }
+
+        if (!configPath) {
+          throw new Error('Interactive config path was not resolved before save.');
+        }
+
+        writeConfigFile(configPath, config);
+        console.log(pc.dim(`Saved dynamic config → ${formatConfigPathForDisplay(configPath)}`));
+      }
+
+      healthTracker.setPhase('writing-settings', `Writing ${phrases.length} phrases to VS Code settings`);
+      writeVsCodeSettings(settingsPath, phrases, config.mode);
+      console.log(pc.green(`Updated ${settingsPath}`));
+      console.log(
+        pc.bold(
+          `Replaced thinking phrases with ${phrases.length} phrases from ${enabledSources.length} source(s)${config.githubModels.enabled ? ' using GitHub Models formatting when available' : ''}`,
+        ),
+      );
+
+      if (installScheduler && process.platform === 'darwin') {
+        healthTracker.setPhase('updating-scheduler', `Installing macOS scheduler for every ${schedulerIntervalSeconds} seconds`);
+        config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
+        const resolvedSchedulerConfigPath = resolveConfigPath(schedulerConfigPath ?? configPath ?? args.configPath);
+        writeConfigFile(resolvedSchedulerConfigPath, config);
+        console.log(pc.cyan(`Installing macOS launchd scheduler for every ${schedulerIntervalSeconds} seconds...`));
+        installMacScheduler(schedulerIntervalSeconds, resolvedSchedulerConfigPath);
+        console.log(pc.green(`Scheduler installed for every ${schedulerIntervalSeconds} seconds using ${resolvedSchedulerConfigPath}.`));
+      }
+
+      if (process.platform === 'darwin') {
+        const installedScheduler = getInstalledSchedulerInfo();
+        if (installedScheduler.installed) {
+          console.log(
+            pc.dim(
+              `Scheduler status: installed${installedScheduler.intervalSeconds ? ` every ${installedScheduler.intervalSeconds}s` : ''} → ${formatConfigPathForDisplay(installedScheduler.configPath ?? configPath ?? resolveConfigPath(args.configPath))}`,
+            ),
+          );
+        }
+      }
+
+      healthTracker.succeed(summary, `Completed run with ${phrases.length} phrases from ${enabledSources.length} source(s)`);
+      return;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       failInteractiveProgress('Dynamic run failed');
+      healthTracker.fail(message);
       throw error;
     }
-
-    if (phrases.length === 0) {
-      throw new Error('No thinking phrases were generated from the configured sources.');
-    }
-
-    if (dryRun) {
-      console.log(pc.bold(pc.cyan(`Dry run only — would write ${phrases.length} phrases to ${settingsPath}`)));
-      console.log(pc.dim('Preview:'));
-      for (const phrase of phrases.slice(0, 5)) {
-        console.log(`${pc.green('•')} ${phrase}`);
-      }
-
-      if (!isInteractive) {
-        return;
-      }
-
-      const nextAction = await promptForPostDryRunAction('dynamic phrases');
-      if (!nextAction || nextAction === 'exit') {
-        outro(pc.yellow('Interactive run finished after preview. No settings were changed.'));
-        return;
-      }
-
-      if (nextAction === 'edit') {
-        continue;
-      }
-
-      dryRun = false;
-      if (process.platform === 'darwin') {
-        const schedulerOverrides = await promptForDynamicSchedulerAfterDryRun();
-        if (!schedulerOverrides) {
-          return;
-        }
-
-        installScheduler = Boolean(schedulerOverrides.installScheduler);
-        schedulerIntervalSeconds = schedulerOverrides.schedulerIntervalSeconds ?? schedulerIntervalSeconds;
-        config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
-      }
-
-      outro(pc.green('Installing dynamic phrases…'));
-    }
-
-    if (isInteractive) {
-      if (createNewConfig) {
-        const namedConfigPath = await promptForConfigName(config);
-        if (!namedConfigPath) {
-          outro(pc.yellow('Interactive run cancelled. No settings were changed.'));
-          return;
-        }
-
-        configPath = resolveConfigPath(namedConfigPath);
-        schedulerConfigPath = namedConfigPath;
-        createNewConfig = false;
-      }
-
-      if (!configPath) {
-        throw new Error('Interactive config path was not resolved before save.');
-      }
-
-      writeConfigFile(configPath, config);
-      console.log(pc.dim(`Saved dynamic config → ${formatConfigPathForDisplay(configPath)}`));
-    }
-
-    writeVsCodeSettings(settingsPath, phrases, config.mode);
-    console.log(pc.green(`Updated ${settingsPath}`));
-    console.log(
-      pc.bold(
-        `Replaced thinking phrases with ${phrases.length} phrases from ${enabledSources.length} source(s)${config.githubModels.enabled ? ' using GitHub Models formatting when available' : ''}`,
-      ),
-    );
-
-    if (installScheduler && process.platform === 'darwin') {
-      config = syncGitHubLookbackToScheduler(config, schedulerIntervalSeconds);
-      const resolvedSchedulerConfigPath = resolveConfigPath(schedulerConfigPath ?? configPath ?? args.configPath);
-      writeConfigFile(resolvedSchedulerConfigPath, config);
-      console.log(pc.cyan(`Installing macOS launchd scheduler for every ${schedulerIntervalSeconds} seconds...`));
-      installMacScheduler(schedulerIntervalSeconds, resolvedSchedulerConfigPath);
-      console.log(pc.green(`Scheduler installed for every ${schedulerIntervalSeconds} seconds using ${resolvedSchedulerConfigPath}.`));
-    }
-
-    if (process.platform === 'darwin') {
-      const installedScheduler = getInstalledSchedulerInfo();
-      if (installedScheduler.installed) {
-        console.log(
-          pc.dim(
-            `Scheduler status: installed${installedScheduler.intervalSeconds ? ` every ${installedScheduler.intervalSeconds}s` : ''} → ${formatConfigPathForDisplay(installedScheduler.configPath ?? configPath ?? resolveConfigPath(args.configPath))}`,
-          ),
-        );
-      }
-    }
-
-    return;
   }
 }

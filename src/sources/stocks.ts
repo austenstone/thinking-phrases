@@ -1,4 +1,5 @@
 import YahooFinance from 'yahoo-finance2';
+import { formatStockPhrase as formatStockPhraseTemplate } from '../core/phraseFormats.js';
 import type { Config, PhraseSource, StockItem } from '../core/types.js';
 import { dedupePhrases, formatPrice, formatSignedPercent, logInfo, normalizeSymbols, truncate } from '../core/utils.js';
 
@@ -61,18 +62,18 @@ function getMarketPriceDetails(quote: StockQuoteSnapshot): {
 }
 
 export function buildStockPhrase(item: StockItem, config: Config): string {
-  const parts = [item.symbol, formatPrice(item.price, item.currency)];
   const signedPercent = formatSignedPercent(item.changePercent);
-  if (signedPercent) {
-    parts.push(signedPercent);
-  }
-
   const formattedMarketLabel = formatMarketLabel(item.marketLabel);
-  if (config.stockQuotes.includeMarketState && formattedMarketLabel) {
-    parts.push(formattedMarketLabel);
-  }
 
-  return truncate(parts.join(' '), config.phraseFormatting.maxLength);
+  return truncate(
+    formatStockPhraseTemplate({
+      symbol: item.symbol,
+      price: formatPrice(item.price, item.currency),
+      change: signedPercent,
+      market: config.stockQuotes.includeMarketState ? formattedMarketLabel : undefined,
+    }),
+    config.phraseFormatting.maxLength,
+  );
 }
 
 export async function fetchStockItems(config: Config): Promise<StockItem[]> {

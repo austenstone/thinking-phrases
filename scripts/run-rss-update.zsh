@@ -3,14 +3,36 @@ set -euo pipefail
 
 REPO_DIR="/Users/austenstone/source/vscode-copilot-tips"
 
+timestamp() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 cd "$REPO_DIR"
 
 if [[ -f "$HOME/.zshrc" ]]; then
-  source "$HOME/.zshrc"
+  set +u
+  source "$HOME/.zshrc" >/dev/null 2>&1 || true
+  set -u
 fi
 
+echo "[$(timestamp)] thinking-phrases scheduler run started"
+
 if [[ -n "${THINKING_PHRASES_CONFIG:-}" ]]; then
-  npm run phrases:run -- --config "$THINKING_PHRASES_CONFIG"
+  echo "[$(timestamp)] config: $THINKING_PHRASES_CONFIG"
+  if npm run phrases:run -- --config "$THINKING_PHRASES_CONFIG"; then
+    echo "[$(timestamp)] thinking-phrases scheduler run completed successfully"
+  else
+    exit_code=$?
+    echo "[$(timestamp)] thinking-phrases scheduler run failed with exit code $exit_code" >&2
+    exit $exit_code
+  fi
 else
-  npm run phrases:run
+  echo "[$(timestamp)] config: default"
+  if npm run phrases:run; then
+    echo "[$(timestamp)] thinking-phrases scheduler run completed successfully"
+  else
+    exit_code=$?
+    echo "[$(timestamp)] thinking-phrases scheduler run failed with exit code $exit_code" >&2
+    exit $exit_code
+  fi
 fi

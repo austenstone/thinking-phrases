@@ -1,3 +1,4 @@
+import { formatHackerNewsPhrase } from '../core/phraseFormats.js';
 import type { ArticleItem, PhraseSource } from '../core/types.js';
 import { fetchJson, logInfo, relativeTime, stripHtml } from '../core/utils.js';
 
@@ -51,7 +52,7 @@ export async function fetchHackerNewsArticles(config: import('../core/types.js')
       const trimmedTitle = item.title?.trim() ?? '';
       const relativeTimestamp = relativeTime(datetime);
       const score = typeof item.score === 'number' ? `+${item.score}` : undefined;
-      const displayPhrase = [`HN: ${trimmedTitle}`, score, relativeTimestamp].filter(Boolean).join(' — ');
+      const displayPhrase = formatHackerNewsPhrase({ title: trimmedTitle, score, time: relativeTimestamp });
 
       return {
         type: 'article' as const,
