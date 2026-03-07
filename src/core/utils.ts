@@ -310,3 +310,23 @@ export async function fetchUsZipLocation(zipCode: string): Promise<ZipLocation> 
   zipLocationCache.set(normalizedZip, lookupPromise);
   return lookupPromise;
 }
+
+interface IpGeoResponse {
+  status?: string;
+  zip?: string;
+  city?: string;
+  regionName?: string;
+}
+
+/** Best-effort ZIP detection via IP geolocation. Returns undefined on failure. */
+export async function detectZipFromIp(): Promise<string | undefined> {
+  try {
+    const geo = await fetchJson<IpGeoResponse>('http://ip-api.com/json/?fields=status,zip,city,regionName');
+    if (geo.status === 'success' && geo.zip && isValidUsZipCode(geo.zip)) {
+      return geo.zip;
+    }
+  } catch {
+    // Best-effort — silently fail
+  }
+  return undefined;
+}
