@@ -132,6 +132,7 @@ export interface ArticleItem {
 	type: 'article';
 	id: string;
 	title?: string;
+	displayPhrase?: string;
 	link?: string;
 	source?: string;
 	datetime?: string;

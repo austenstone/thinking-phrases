@@ -21,6 +21,10 @@ import { buildStockPhrase } from '../sources/stocks.js';
 import { removeVsCodeThinkingPhrases, writeVsCodeSettings } from '../sinks/vscodeSettings.js';
 
 function buildBasicArticlePhrase(article: ArticleItem, config: Config): string | null {
+	if (article.displayPhrase?.trim()) {
+		return truncate(article.displayPhrase.trim(), config.phraseFormatting.maxLength);
+	}
+
   if (!article.title?.trim()) {
     return null;
   }

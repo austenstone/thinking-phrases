@@ -1,10 +1,42 @@
 {
   "name": "thinking-phrases",
   "version": "1.0.0",
-  "description": "Curated thinking phrase packs for VS Code and beyond — like loading screen tips for AI",
+  "description": "Live thinking phrases for VS Code — RSS, stocks, GitHub commits, earthquakes, weather, Hacker News, and more",
   "type": "module",
+  "bin": {
+    "thinking-phrases": "./bin/thinking-phrases.ts"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scripts/",
+    "tips/",
+    "configs/",
+    "launchd/",
+    "tsconfig.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/austenstone/thinking-phrases.git"
+  },
+  "homepage": "https://github.com/austenstone/thinking-phrases",
+  "keywords": [
+    "vscode",
+    "thinking-phrases",
+    "copilot",
+    "rss",
+    "github",
+    "stocks",
+    "hacker-news",
+    "earthquakes",
+    "weather",
+    "cli"
+  ],
   "scripts": {
     "build": "tsx scripts/build.ts",
+    "start": "tsx bin/thinking-phrases.ts",
+    "start:interactive": "tsx bin/thinking-phrases.ts --interactive",
+    "start:dry-run": "tsx bin/thinking-phrases.ts --dry-run",
     "rss:dry-run": "tsx scripts/update-rss-settings.ts --dry-run",
     "rss:interactive": "tsx scripts/update-rss-settings.ts --interactive",
     "rss:remove": "tsx scripts/update-rss-settings.ts --uninstall",
@@ -19,12 +51,12 @@
     "fast-xml-parser": "^5.4.2",
     "jsonc-parser": "^3.3.1",
     "picocolors": "^1.1.1",
+    "tsx": "^4.19.0",
     "yahoo-finance2": "^3.13.2"
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
     "@types/node": "^25.3.5",
-    "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   },
   "license": "MIT"

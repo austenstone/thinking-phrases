@@ -102,13 +102,48 @@ async function runGitHubModelsPrompt(config: GitHubModelsConfig, content: string
 }
 
 function chunkArticles(articles: ArticleItem[], config: GitHubModelsConfig): ArticleItem[][] {
-  const estimatedPerChunk = Math.max(1, Math.floor(config.maxTokens / Math.max(80, config.maxPhrasesPerArticle * 80)));
-  const chunkSize = Math.max(1, Math.min(config.maxInputItems, estimatedPerChunk));
   const chunks: ArticleItem[][] = [];
+  const estimatedPerChunk = Math.max(1, Math.floor(config.maxTokens / Math.max(80, config.maxPhrasesPerArticle * 80)));
+  const defaultChunkSize = Math.max(1, Math.min(config.maxInputItems, estimatedPerChunk));
+  const maxCharactersPerChunk = 24_000;
 
-  for (let index = 0; index < articles.length; index += chunkSize) {
-    chunks.push(articles.slice(index, index + chunkSize));
+  let currentChunk: ArticleItem[] = [];
+  let currentCharacters = 0;
+
+  const estimateArticleCharacters = (article: ArticleItem): number => {
+    return [article.title, article.source, article.time, article.articleContent, article.content, article.link]
+      .filter(Boolean)
+      .join(' ')
+      .length;
+  };
+
+  const flushCurrentChunk = (): void => {
+    if (currentChunk.length > 0) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentCharacters = 0;
+    }
+  };
+
+  for (const article of articles) {
+    const articleCharacters = estimateArticleCharacters(article);
+
+    if (
+			currentChunk.length > 0
+			&& (currentChunk.length >= defaultChunkSize || currentCharacters + articleCharacters > maxCharactersPerChunk)
+		) {
+      flushCurrentChunk();
+    }
+
+    currentChunk.push(article);
+    currentCharacters += articleCharacters;
+
+    if (articleCharacters > maxCharactersPerChunk) {
+      flushCurrentChunk();
+    }
   }
+
+  flushCurrentChunk();
 
   return chunks;
 }
