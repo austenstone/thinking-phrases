@@ -11,8 +11,8 @@ The VS Code setting looks like this:
   "mode": "replace",
   "phrases": [
     "NVDA $128.44 ▼ 0.84% 🟢",
-    "Linux 6.14 lands with io_uring changes — Ars Technica (2h ago)",
-    "fix devtools entrypoint — vscode +1/-1 @deepak1556 (4h ago)"
+    "io_uring can now replace epoll for high-throughput networking in Linux 6.14 — Ars Technica (2h ago)",
+    "DevTools now loads 40% faster after entrypoint was split into lazy chunks — vscode @deepak1556 (4h ago)"
   ]
 }
 ```

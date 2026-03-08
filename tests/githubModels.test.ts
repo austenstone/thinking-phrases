@@ -213,12 +213,12 @@ describe('resolvePrompt', () => {
 
   it('returns fallback prompt for unknown source type', () => {
     const prompt = resolvePrompt(baseModels, 'unknown-source');
-    expect(prompt).toContain('VS Code thinking phrases');
+    expect(prompt).toContain('concrete takeaway');
   });
 
   it('returns fallback prompt when no source type given', () => {
     const prompt = resolvePrompt(baseModels);
-    expect(prompt).toContain('VS Code thinking phrases');
+    expect(prompt).toContain('concrete takeaway');
   });
 
   it('prefers config per-source prompt over built-in', () => {

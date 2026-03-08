@@ -131,17 +131,24 @@ export function readConfigFile(configPath = CONFIG_PATH): Partial<Config> {
 import { DEFAULT_SOURCE_PROMPTS } from './githubModels.js';
 
 export function writeConfigFile(configPath: string, config: Config): void {
-  // Populate prompts with defaults so users can see and edit them
-  const mergedPrompts = { ...DEFAULT_SOURCE_PROMPTS, ...(config.githubModels.prompts ?? {}) };
+  // Only persist prompts the user actually customized — skip defaults so code updates stay current
+  const userPrompts: Record<string, string> = {};
+  for (const [key, value] of Object.entries(config.githubModels.prompts ?? {})) {
+    if (value !== DEFAULT_SOURCE_PROMPTS[key]) {
+      userPrompts[key] = value;
+    }
+  }
 
+  const { prompts: _prompts, systemPrompt, ...restModels } = config.githubModels;
   const persistedConfig: Config = {
     ...config,
     verbose: false,
     debug: false,
     githubModels: {
-      ...config.githubModels,
-      prompts: mergedPrompts,
-    },
+      ...restModels,
+      ...(systemPrompt ? { systemPrompt } : {}),
+      ...(Object.keys(userPrompts).length > 0 ? { prompts: userPrompts } : {}),
+    } as Config['githubModels'],
   };
 
   mkdirSync(dirname(configPath), { recursive: true });
