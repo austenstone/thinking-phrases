@@ -128,13 +128,14 @@ describe('hydrateArticleContent', () => {
     };
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const substantialContent = 'A'.repeat(600);
     const articles: ArticleItem[] = [
-      { type: 'article', id: '1', title: 'Test', link: 'https://example.com/1', articleContent: 'Already fetched content' },
+      { type: 'article', id: '1', title: 'Test', link: 'https://example.com/1', articleContent: substantialContent },
     ];
 
     const result = await hydrateArticleContent(articles, config);
-    expect(result[0].articleContent).toBe('Already fetched content');
-    // Should not have fetched the link since content already exists
+    expect(result[0].articleContent).toBe(substantialContent);
+    // Should not have fetched the link since content is already substantial
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

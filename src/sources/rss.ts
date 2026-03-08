@@ -211,27 +211,35 @@ export async function hydrateArticleContent(articles: ArticleItem[], config: Con
   logInfo(config, `Fetching article content for up to ${articles.length} articles`);
 
   return Promise.all(articles.map(async article => {
-    if (article.articleContent) {
-      logDebug(config, `Using embedded feed article content for: ${article.title ?? article.link}`);
+    if (!article.link) {
       return article;
     }
 
-    if (!article.link) {
+    // If the article already has substantial embedded content (e.g. RSS <content:encoded>),
+    // skip fetching — the feed itself provided the full article body.
+    if (article.articleContent && article.articleContent.length >= 500) {
+      logDebug(config, `Using embedded article content (${article.articleContent.length} chars) for: ${article.title ?? article.link}`);
       return article;
     }
 
     try {
       logInfo(config, `Fetching article content from ${article.link}`);
       const html = await fetchText(article.link);
-      const articleContent = extractArticleTextFromHtml(html, config.githubModels.maxArticleContentLength);
+      const fetched = extractArticleTextFromHtml(html, config.githubModels.maxArticleContentLength);
 
-      if (articleContent) {
-        logDebug(config, `Fetched article content preview: ${singleLine(articleContent, 220)}`);
+      if (fetched) {
+        logDebug(config, `Fetched article content preview: ${singleLine(fetched, 220)}`);
       }
+
+      // Combine existing content (e.g. HN self-text) with fetched article body
+      const existing = article.articleContent?.trim();
+      const combined = existing && fetched
+        ? `${existing}\n\n${fetched}`
+        : fetched || existing || article.content;
 
       return {
         ...article,
-        articleContent: articleContent || article.content,
+        articleContent: combined ? truncate(combined, config.githubModels.maxArticleContentLength) : article.content,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

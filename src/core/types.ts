@@ -40,7 +40,10 @@ export interface GitHubModelsConfig {
 	temperature: number;
 	fetchArticleContent: boolean;
 	maxArticleContentLength: number;
+	/** Default prompt used when no source-specific prompt exists */
 	systemPrompt?: string;
+	/** Per-source prompts keyed by source type (rss, hacker-news, github-activity, earthquakes, custom-json) */
+	prompts?: Record<string, string>;
 	cacheTtlSeconds?: number;
 }
 

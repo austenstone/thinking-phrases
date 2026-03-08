@@ -58,6 +58,7 @@ export async function fetchHackerNewsArticles(config: Config): Promise<ArticleIt
         { title: trimmedTitle, score, time: relativeTimestamp },
         { template: config.phraseFormatting.templates?.hackerNews },
       );
+      const hnText = stripHtml(item.text);
 
       return {
         type: 'article' as const,
@@ -68,8 +69,8 @@ export async function fetchHackerNewsArticles(config: Config): Promise<ArticleIt
         source: 'Hacker News',
         datetime,
         time: relativeTimestamp,
-        content: stripHtml(item.text),
-        articleContent: stripHtml(item.text),
+        content: hnText,
+        articleContent: hnText,
         metadata: {
           author: item.by,
           score: typeof item.score === 'number' ? `${item.score} pts` : undefined,

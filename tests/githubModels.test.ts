@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { extractModelPhrases, chunkArticles, buildModelArticlePhrases } from '../src/core/githubModels.js';
+import { extractModelPhrases, chunkArticles, buildModelArticlePhrases, resolvePrompt } from '../src/core/githubModels.js';
 import { DEFAULT_CONFIG } from '../src/core/config.js';
 import type { ArticleItem, Config, GitHubModelsConfig } from '../src/core/types.js';
 
@@ -193,5 +193,70 @@ describe('buildModelArticlePhrases', () => {
     } else {
       delete process.env.GITHUB_TOKEN;
     }
+  });
+});
+
+// ── resolvePrompt ────────────────────────────────────────────────────
+describe('resolvePrompt', () => {
+  const baseModels: GitHubModelsConfig = { ...DEFAULT_CONFIG.githubModels };
+
+  it('returns built-in per-source prompt for known source type', () => {
+    const prompt = resolvePrompt(baseModels, 'hacker-news');
+    expect(prompt).toContain('Hacker News');
+    expect(prompt).toContain('phrases');
+  });
+
+  it('returns built-in per-source prompt for github-activity', () => {
+    const prompt = resolvePrompt(baseModels, 'github-activity');
+    expect(prompt).toContain('GitHub commits');
+  });
+
+  it('returns fallback prompt for unknown source type', () => {
+    const prompt = resolvePrompt(baseModels, 'unknown-source');
+    expect(prompt).toContain('VS Code thinking phrases');
+  });
+
+  it('returns fallback prompt when no source type given', () => {
+    const prompt = resolvePrompt(baseModels);
+    expect(prompt).toContain('VS Code thinking phrases');
+  });
+
+  it('prefers config per-source prompt over built-in', () => {
+    const config: GitHubModelsConfig = {
+      ...baseModels,
+      prompts: { 'hacker-news': 'Custom HN prompt here' },
+    };
+    expect(resolvePrompt(config, 'hacker-news')).toBe('Custom HN prompt here');
+  });
+
+  it('falls through to systemPrompt when per-source not configured', () => {
+    const config: GitHubModelsConfig = {
+      ...baseModels,
+      systemPrompt: 'Global override prompt',
+      prompts: { 'rss': 'RSS-specific prompt' },
+    };
+    // rss has a per-source config → use it
+    expect(resolvePrompt(config, 'rss')).toBe('RSS-specific prompt');
+    // hacker-news has no per-source config → fall through to systemPrompt
+    expect(resolvePrompt(config, 'hacker-news')).toBe('Global override prompt');
+  });
+
+  it('systemPrompt overrides built-in defaults', () => {
+    const config: GitHubModelsConfig = {
+      ...baseModels,
+      systemPrompt: 'My custom global prompt',
+    };
+    expect(resolvePrompt(config, 'rss')).toBe('My custom global prompt');
+    expect(resolvePrompt(config, 'github-activity')).toBe('My custom global prompt');
+  });
+
+  it('per-source prompt takes priority over systemPrompt', () => {
+    const config: GitHubModelsConfig = {
+      ...baseModels,
+      systemPrompt: 'Global prompt',
+      prompts: { 'rss': 'RSS wins' },
+    };
+    expect(resolvePrompt(config, 'rss')).toBe('RSS wins');
+    expect(resolvePrompt(config, 'earthquakes')).toBe('Global prompt');
   });
 });

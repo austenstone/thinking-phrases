@@ -6,6 +6,81 @@ import { appendSourceSuffix } from './phraseFormats.js';
 
 interface BuildModelArticlePhrasesOptions {
   onProgress?: (message: string) => void;
+  /** Source type for prompt selection (rss, hacker-news, github-activity, etc.) */
+  sourceType?: string;
+}
+
+const PROMPT_PREAMBLE = [
+  'Return JSON only in this shape: {"phrases":["..."]}.',
+  'Each phrase must be factual, concrete, and at most maxLength characters.',
+  'You may emit multiple phrases for one item when it has multiple distinct takeaways.',
+  'Return at most maxPhrasesPerArticle phrases per item.',
+  'Do NOT include the source name or time/date in the phrase — those are appended separately.',
+].join(' ');
+
+export const DEFAULT_SOURCE_PROMPTS: Record<string, string> = {
+  'rss': [
+    PROMPT_PREAMBLE,
+    'You are summarizing articles from RSS/Atom feeds.',
+    'Extract the most surprising, useful, or concrete detail from the article content — specific numbers, features, dates, outcomes, or insights.',
+    'The reader wants to LEARN something new, not just know an article exists.',
+    'If the content is substantial, prioritize the single most interesting takeaway a developer would remember.',
+    'Avoid vague summaries like "the article discusses X" — state the actual finding or fact.',
+  ].join(' '),
+  'hacker-news': [
+    PROMPT_PREAMBLE,
+    'You are summarizing Hacker News posts.',
+    'Extract a concrete, memorable takeaway — a specific technical insight, surprising fact, or actionable detail.',
+    'The reader wants to learn the key insight without reading the full article.',
+    'If article content is available, prioritize the most interesting technical detail or finding.',
+    'If only a title is available, expand it into a more informative statement if possible, but stay factual.',
+    'Avoid restating the title verbatim — add context or specificity.',
+  ].join(' '),
+  'github-activity': [
+    PROMPT_PREAMBLE,
+    'You are summarizing GitHub commits and activity.',
+    'Explain WHAT the change does and WHY in plain language — the reader wants to understand the purpose and impact.',
+    'Never output file paths, line counts, or SHA hashes — those are shown separately in the metadata suffix.',
+    'Focus on the behavioral change: what is different for users or developers after this commit?',
+    'For refactors or internal changes, explain what problem it solves or what it enables.',
+  ].join(' '),
+  'earthquakes': [
+    PROMPT_PREAMBLE,
+    'You are summarizing earthquake data from USGS.',
+    'State the magnitude, location, and any notable context concisely.',
+    'If multiple quakes are near the same area, highlight the pattern.',
+  ].join(' '),
+  'custom-json': [
+    PROMPT_PREAMBLE,
+    'You are summarizing items from a custom JSON API.',
+    'Extract the most concrete and informative detail from each item.',
+    'The reader wants a useful fact or insight, not a vague overview.',
+  ].join(' '),
+};
+
+const DEFAULT_FALLBACK_PROMPT = [
+  PROMPT_PREAMBLE,
+  'Create concise VS Code thinking phrases from these content items.',
+  'For articles/blog posts: extract the most surprising or useful concrete detail — numbers, features, dates, outcomes.',
+  'For code commits/diffs: explain WHAT the change does and WHY, not which files were edited or line counts.',
+  'Never output file paths, line counts, or SHA hashes — those are shown separately.',
+].join(' ');
+
+/**
+ * Resolve the prompt for a given source type.
+ * Priority: config per-source prompt > config systemPrompt > built-in per-source default > built-in fallback.
+ */
+export function resolvePrompt(config: GitHubModelsConfig, sourceType?: string): string {
+  if (sourceType && config.prompts?.[sourceType]) {
+    return config.prompts[sourceType];
+  }
+  if (config.systemPrompt) {
+    return config.systemPrompt;
+  }
+  if (sourceType && DEFAULT_SOURCE_PROMPTS[sourceType]) {
+    return DEFAULT_SOURCE_PROMPTS[sourceType];
+  }
+  return DEFAULT_FALLBACK_PROMPT;
 }
 
 const DEFAULT_ENDPOINT = 'https://models.github.ai/inference';
@@ -122,18 +197,9 @@ export async function buildModelArticlePhrases(
 
   const processChunk = async (chunk: ArticleItem[], index: number): Promise<string[]> => {
     const contentBudget = config.githubModels.maxArticleContentLength;
+    const instruction = resolvePrompt(config.githubModels, options.sourceType);
     const payload = JSON.stringify({
-      instruction: config.githubModels.systemPrompt ?? [
-        'Create concise VS Code thinking phrases from these content items.',
-        'Return JSON only in this shape: {"phrases":["..."]}.',
-        'Each phrase must be factual, concrete, and at most maxLength characters.',
-        'You may emit multiple phrases for one item when it has multiple distinct takeaways.',
-        'Return at most maxPhrasesPerArticle phrases per item.',
-        'For articles/blog posts: extract the most surprising or useful concrete detail — numbers, features, dates, outcomes.',
-        'For code commits/diffs: explain WHAT the change does and WHY, not which files were edited or line counts. The reader already sees the repo and stats in the suffix.',
-        'Never output file paths, line counts, or SHA hashes — those are shown separately.',
-        'Do NOT include the source name or time/date in the phrase — those are appended separately.',
-      ].join(' '),
+      instruction,
       maxLength: config.phraseFormatting.maxLength,
       maxPhrasesPerArticle: config.githubModels.maxPhrasesPerArticle,
       items: chunk.map(article => ({

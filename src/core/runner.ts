@@ -350,6 +350,7 @@ export async function runDynamicPhrases(): Promise<void> {
           } else {
             try {
               const newPhrases = await buildModelArticlePhrases(uncached, config, {
+                sourceType: type,
                 onProgress: (message: string) => {
                   startInteractiveProgress(message);
                   healthTracker.setPhase('formatting-phrases', message);
