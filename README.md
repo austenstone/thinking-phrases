@@ -30,7 +30,7 @@ Or just grab the [static thinking phrases](https://github.com/austenstone/thinki
 | **Stocks** | Live ticker quotes via Yahoo Finance | `NVDA $128.44 ▼ 0.84% 🟢` |
 | **Hacker News** | Top/new/best/ask/show/jobs | `I built a database in a spreadsheet — HN @author 342 pts (45m ago)` |
 | **Earthquakes** | USGS earthquake catalog near a ZIP | `M4.2 — 12 km NE of Ridgecrest, CA — USGS (38m ago)` |
-| **Weather** | Temp, humidity, wind + NWS alerts | `Fort Lauderdale, FL, 81°F, Partly Cloudy, Wind SE 12 mph, Humidity 65% — Weather.gov` |
+| **Weather** | Temp, humidity, wind + NWS alerts | `81°F, Partly Cloudy, Wind SE 12 mph, Humidity 65% — Fort Lauderdale, FL — Weather.gov` |
 | **Custom JSON** | Any JSON API with field mapping | `Article title — My API (1h ago)` |
 | **GitHub Commits** | Repo or org commits with diffs | `fix devtools entrypoint — vscode +1/-1 @deepak1556 (4h ago)` |
 | **GitHub Feeds** | Org activity, timeline, advisories | `opened a pull request in copilot-sdk — @dependabot (3m ago)` |

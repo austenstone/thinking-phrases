@@ -243,16 +243,16 @@ describe('formatGitHubFeedPhrase', () => {
 });
 
 // ── formatWeatherNoAlertsPhrase ──────────────────────────────────────
-// Expected output: "Weather.gov — No active alerts near Fort Lauderdale, FL"
+// Expected output: "No active alerts — Fort Lauderdale, FL — Weather.gov"
 describe('formatWeatherNoAlertsPhrase', () => {
   it('formats with location', () => {
     expect(formatWeatherNoAlertsPhrase({ location: 'Fort Lauderdale, FL' }))
-      .toBe('Weather.gov — No active alerts near Fort Lauderdale, FL');
+      .toBe('No active alerts — Fort Lauderdale, FL — Weather.gov');
   });
 
   it('formats with zip code fallback', () => {
     expect(formatWeatherNoAlertsPhrase({ location: '33312' }))
-      .toBe('Weather.gov — No active alerts near 33312');
+      .toBe('No active alerts — 33312 — Weather.gov');
   });
 });
 

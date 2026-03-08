@@ -200,9 +200,9 @@ export interface WeatherNoAlertsPhraseVars {
   location: string;
 }
 
-/** "Weather.gov — No active alerts near Fort Lauderdale, FL" */
+/** "No active alerts — Fort Lauderdale, FL — Weather.gov" */
 export function formatWeatherNoAlertsPhrase(vars: WeatherNoAlertsPhraseVars): string {
-  return `Weather.gov${PHRASE_SEPARATOR}No active alerts near ${vars.location}`;
+  return `No active alerts${PHRASE_SEPARATOR}${vars.location}${PHRASE_SEPARATOR}Weather.gov`;
 }
 
 // ── Source Suffix ───────────────────────────────────────────────────

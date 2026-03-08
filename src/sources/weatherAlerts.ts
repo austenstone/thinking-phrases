@@ -141,24 +141,26 @@ async function fetchCurrentConditions(context: WeatherLookupContext, config: Con
 
     if (tempF === undefined && !description) return null;
 
-    const parts = [context.locationLabel];
-    if (tempF !== undefined) parts.push(`${tempF}°F`);
-    if (description) parts.push(description);
+    const conditionParts: string[] = [];
+    if (tempF !== undefined) conditionParts.push(`${tempF}°F`);
+    if (description) conditionParts.push(description);
     if (windMph !== undefined && windMph > 0) {
-      parts.push(`Wind ${windDir ?? ''} ${windMph} mph`.replace(/\s+/gu, ' ').trim());
+      conditionParts.push(`Wind ${windDir ?? ''} ${windMph} mph`.replace(/\s+/gu, ' ').trim());
     }
     if (humidity !== null && humidity !== undefined) {
-      parts.push(`Humidity ${Math.round(humidity)}%`);
+      conditionParts.push(`Humidity ${Math.round(humidity)}%`);
     }
 
-    const title = parts.join(', ');
-    logInfo(config, `Current conditions: ${title}`);
+    const conditions = conditionParts.join(', ');
+    const title = conditions;
+    const displayPhrase = `${conditions} — ${context.locationLabel} — Weather.gov`;
+    logInfo(config, `Current conditions: ${context.locationLabel}, ${conditions}`);
 
     return {
       type: 'article',
       id: `weather-conditions:${stationId}`,
       title,
-      displayPhrase: title + ' — Weather.gov',
+      displayPhrase,
       link: context.lookupUrl,
       source: 'Weather.gov',
       content: title,
