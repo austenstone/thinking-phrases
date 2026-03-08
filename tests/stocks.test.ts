@@ -25,9 +25,12 @@ describe('buildStockPhrase', () => {
     expect(phrase).toContain('▲ 1.25%');
   });
 
-  it('includes market state emoji when enabled', () => {
+  it('shows no market label when market is open', () => {
     const phrase = buildStockPhrase(baseItem, DEFAULT_CONFIG);
-    expect(phrase).toContain('🟢');
+    expect(phrase).not.toContain('🟢');
+    expect(phrase).not.toContain('🔒');
+    expect(phrase).not.toContain('🌅');
+    expect(phrase).not.toContain('🌙');
   });
 
   it('omits market state when disabled', () => {
@@ -37,6 +40,7 @@ describe('buildStockPhrase', () => {
     };
     const phrase = buildStockPhrase(baseItem, config);
     expect(phrase).not.toContain('🟢');
+    expect(phrase).not.toContain('🔒');
   });
 
   it('shows lock emoji for closed market', () => {

@@ -20,7 +20,7 @@ const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 function formatMarketLabel(label?: string): string | undefined {
   switch (label) {
     case 'today':
-      return '🟢';
+      return '';
     case 'close':
       return '🔒';
     case 'pre-market':
