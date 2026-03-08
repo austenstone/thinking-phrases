@@ -104,6 +104,11 @@ function writeModelCache(cache: ModelCache): void {
   writeJson(MODEL_CACHE_FILE, cache);
 }
 
+export function clearModelCache(): void {
+  ensureCacheDir();
+  writeJson(MODEL_CACHE_FILE, {});
+}
+
 /**
  * Prune model cache entries older than the configured TTL.
  */

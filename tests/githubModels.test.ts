@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { extractModelPhrases, chunkArticles, buildModelArticlePhrases, resolvePrompt } from '../src/core/githubModels.js';
+import { extractModelPhrases, buildModelArticlePhrases, resolvePrompt } from '../src/core/githubModels.js';
 import { DEFAULT_CONFIG } from '../src/core/config.js';
 import type { ArticleItem, Config, GitHubModelsConfig } from '../src/core/types.js';
 
@@ -76,61 +76,6 @@ describe('extractModelPhrases', () => {
   it('filters non-string items from phrases array', () => {
     const input = '{"phrases": ["valid", 42, null, "also valid"]}';
     expect(extractModelPhrases(input)).toEqual(['valid', 'also valid']);
-  });
-});
-
-// ── chunkArticles ────────────────────────────────────────────────────
-describe('chunkArticles', () => {
-  const baseModelsConfig: GitHubModelsConfig = {
-    ...DEFAULT_CONFIG.githubModels,
-    maxInputItems: 10,
-    maxTokens: 800,
-    maxPhrasesPerArticle: 2,
-  };
-
-  it('returns empty array for no articles', () => {
-    expect(chunkArticles([], baseModelsConfig)).toEqual([]);
-  });
-
-  it('puts each article in its own chunk', () => {
-    const articles = [makeArticle('A'), makeArticle('B')];
-    const chunks = chunkArticles(articles, baseModelsConfig);
-    expect(chunks).toHaveLength(2);
-    expect(chunks[0]).toHaveLength(1);
-    expect(chunks[1]).toHaveLength(1);
-  });
-
-  it('creates one chunk per article regardless of size', () => {
-    const articles = [
-      makeArticle('A'),
-      makeArticle('B'),
-      makeArticle('C'),
-      makeArticle('D'),
-      makeArticle('E'),
-    ];
-    const chunks = chunkArticles(articles, baseModelsConfig);
-    expect(chunks).toHaveLength(5);
-    for (const chunk of chunks) {
-      expect(chunk).toHaveLength(1);
-    }
-  });
-
-  it('handles large articles as single chunks', () => {
-    const bigContent = 'x'.repeat(50_000);
-    const articles = [
-      makeArticle('Big One', bigContent),
-      makeArticle('Big Two', bigContent),
-    ];
-    const chunks = chunkArticles(articles, baseModelsConfig);
-    expect(chunks).toHaveLength(2);
-  });
-
-  it('preserves article order', () => {
-    const articles = [makeArticle('First'), makeArticle('Second'), makeArticle('Third')];
-    const chunks = chunkArticles(articles, baseModelsConfig);
-    expect(chunks[0][0].title).toBe('First');
-    expect(chunks[1][0].title).toBe('Second');
-    expect(chunks[2][0].title).toBe('Third');
   });
 });
 

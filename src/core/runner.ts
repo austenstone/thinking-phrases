@@ -12,7 +12,7 @@ import {
   promptForPostDryRunAction,
   promptForStaticSchedulerAfterDryRun,
 } from './interactive.js';
-import { cacheModelResults, getMergedPhrases, isSourceStale, markSourceFetched, partitionArticlesByModelCache, storePhrases } from './phraseCache.js';
+import { cacheModelResults, clearModelCache, getMergedPhrases, isSourceStale, markSourceFetched, partitionArticlesByModelCache, storePhrases } from './phraseCache.js';
 import { DEFAULT_SCHEDULER_INTERVAL_SECONDS, formatConfigPathForDisplay, getInstalledSchedulerInfo } from './scheduler.js';
 import { dynamicSources } from './sourceCatalog.js';
 import { getStaticPackByPath } from './staticPacks.js';
@@ -100,6 +100,7 @@ export async function runDynamicPhrases(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const isInteractive = Boolean(args.interactive);
   let uninstall = Boolean(args.uninstall);
+  const clearCache = Boolean(args.clearCache);
   let triggerSchedulerNow = Boolean(args.triggerSchedulerNow);
   let createNewConfig = Boolean(args.createNewConfig);
   let dryRun = Boolean(args.dryRun);
@@ -111,6 +112,12 @@ export async function runDynamicPhrases(): Promise<void> {
   let configPath: string | undefined = resolveConfigPath(args.configPath);
   let fileConfig = configPath ? readConfigFile(configPath) : {};
   let config = mergeConfig(DEFAULT_CONFIG, fileConfig, args);
+
+  if (clearCache) {
+    clearModelCache();
+    logInfo(config, 'Model cache cleared');
+  }
+
   let interactivePass = 0;
   const interactiveSpinner = isInteractive ? spinner({ indicator: 'timer' }) : null;
   let interactiveSpinnerActive = false;
@@ -194,9 +201,9 @@ export async function runDynamicPhrases(): Promise<void> {
     if (uninstall) {
       const removedThinkingPhrases = removeVsCodeThinkingPhrases(settingsPath);
       if (removedThinkingPhrases) {
-        console.log(pc.green(`Removed chat.agent.thinking.phrases from ${settingsPath}`));
+        console.log(pc.green(`Removed chat.agent.thinking.phrases from "${settingsPath}"`));
       } else {
-        console.log(pc.dim(`No chat.agent.thinking.phrases entry found in ${settingsPath}`));
+        console.log(pc.dim(`No chat.agent.thinking.phrases entry found in "${settingsPath}"`));
       }
 
       if (process.platform === 'darwin') {
@@ -220,7 +227,7 @@ export async function runDynamicPhrases(): Promise<void> {
       }
 
       if (dryRun) {
-        console.log(pc.bold(pc.cyan(`Dry run only — would write ${pack.phrases.length} phrases from ${pack.name} to ${settingsPath}`)));
+        console.log(pc.bold(pc.cyan(`Dry run only — would write ${pack.phrases.length} phrases from ${pack.name} to "${settingsPath}"`)));
         console.log(pc.dim('Preview:'));
         for (const phrase of pack.phrases.slice(0, 5)) {
           console.log(`${pc.green('•')} ${phrase}`);
@@ -254,7 +261,7 @@ export async function runDynamicPhrases(): Promise<void> {
       }
 
       writeVsCodeSettings(settingsPath, pack.phrases, pack.mode);
-      console.log(pc.green(`Updated ${settingsPath}`));
+      console.log(pc.green(`Updated "${settingsPath}"`));
       console.log(pc.bold(`Installed static pack ${pack.name} with ${pack.phrases.length} phrases.`));
 
       if (uninstallScheduler && process.platform === 'darwin') {
@@ -355,6 +362,13 @@ export async function runDynamicPhrases(): Promise<void> {
                   startInteractiveProgress(message);
                   healthTracker.setPhase('formatting-phrases', message);
                 },
+                onPhrases: (phrases: string[]) => {
+                  const latest = phrases[phrases.length - 1];
+                  if (latest) {
+                    const truncated = latest.length > 100 ? latest.slice(0, 100) + '…' : latest;
+                    startInteractiveProgress(`${pc.dim('•')} ${truncated}`);
+                  }
+                },
               });
               cacheModelResults(uncached, newPhrases, config);
               articlePhrases = [...cachedPhrases, ...newPhrases];
@@ -400,7 +414,7 @@ export async function runDynamicPhrases(): Promise<void> {
       };
 
       if (dryRun) {
-        console.log(pc.bold(pc.cyan(`Dry run only — would write ${phrases.length} phrases to ${settingsPath}`)));
+        console.log(pc.bold(pc.cyan(`Dry run only — would write ${phrases.length} phrases to "${settingsPath}"`)));
         console.log(pc.dim('Preview:'));
         for (const phrase of phrases.slice(0, 5)) {
           console.log(`${pc.green('•')} ${phrase}`);
@@ -454,7 +468,7 @@ export async function runDynamicPhrases(): Promise<void> {
 
       healthTracker.setPhase('writing-settings', `Writing ${phrases.length} phrases to VS Code settings`);
       writeVsCodeSettings(settingsPath, phrases, config.mode);
-      console.log(pc.green(`Updated ${settingsPath}`));
+      console.log(pc.green(`Updated "${settingsPath}"`));
       console.log(
         pc.bold(
           `Replaced thinking phrases with ${phrases.length} phrases from ${enabledSources.length} source(s)${config.githubModels.enabled ? ' using GitHub Models formatting when available' : ''}`,

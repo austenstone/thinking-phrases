@@ -6,15 +6,20 @@ import { appendSourceSuffix } from './phraseFormats.js';
 
 interface BuildModelArticlePhrasesOptions {
   onProgress?: (message: string) => void;
+  /** Called with each batch of phrases as they're generated */
+  onPhrases?: (phrases: string[]) => void;
   /** Source type for prompt selection (rss, hacker-news, github-activity, etc.) */
   sourceType?: string;
 }
 
 const PROMPT_PREAMBLE = [
-  'Return JSON only: {"phrases":["..."]}.',
+  'IMPORTANT: Your ENTIRE response must be valid JSON and nothing else. No markdown, no explanation, no code fences.',
+  'Return exactly this shape: {"phrases":["phrase1","phrase2"]}.',
   'Each phrase: factual, concrete, max maxLength chars. You may emit up to maxPhrasesPerArticle phrases per item.',
   'NEVER include the source name, author, date, or time — those are appended automatically.',
   'NEVER restate the title verbatim. The reader already saw the headline — give them the insight behind it.',
+  'Each phrase is displayed INDEPENDENTLY — never start with "It", "This", "The project", "The tool", or any pronoun that refers to something the reader hasn\'t seen.',
+  'Every phrase must be self-contained and make sense on its own without context from other phrases.',
 ].join(' ');
 
 export const DEFAULT_SOURCE_PROMPTS: Record<string, string> = {
@@ -184,12 +189,18 @@ async function runGitHubModelsPrompt(config: GitHubModelsConfig, content: string
     apiKey: token,
   });
 
+  // Reasoning models (o1, o3, o4, gpt-5) don't support temperature or response_format
+  const isReasoningModel = /(?:^|\/)(?:o[1-4]|gpt-5)/iu.test(config.model);
+
+  // Reasoning models need more tokens because thinking tokens count against the budget
+  const maxTokens = isReasoningModel ? Math.max(config.maxTokens * 4, 2000) : config.maxTokens;
+
   const completion = await client.chat.completions.create({
     model: config.model,
     messages: [{ role: 'user', content }],
-    ...(config.temperature !== 1 ? { temperature: config.temperature } : {}),
-    max_completion_tokens: config.maxTokens,
-    response_format: { type: 'json_object' },
+    ...(!isReasoningModel && config.temperature !== 1 ? { temperature: config.temperature } : {}),
+    max_completion_tokens: maxTokens,
+    ...(!isReasoningModel ? { response_format: { type: 'json_object' } } : {}),
   });
 
   const text = completion.choices?.[0]?.message?.content?.trim();
@@ -201,8 +212,36 @@ async function runGitHubModelsPrompt(config: GitHubModelsConfig, content: string
   return text;
 }
 
-export function chunkArticles(articles: ArticleItem[], _config: GitHubModelsConfig): ArticleItem[][] {
-  return articles.map(article => [article]);
+async function summarizeArticle(article: ArticleItem, config: Config, sourceType?: string): Promise<string[]> {
+  const instruction = resolvePrompt(config.githubModels, sourceType);
+  const payload = JSON.stringify({
+    instruction,
+    maxLength: config.phraseFormatting.maxLength,
+    maxPhrasesPerArticle: config.githubModels.maxPhrasesPerArticle,
+    items: [{
+      title: article.title ?? '',
+      source: article.source ?? '',
+      time: article.time ?? '',
+      content: (article.articleContent ?? article.content ?? '').slice(0, config.githubModels.maxArticleContentLength),
+      link: article.link ?? '',
+    }],
+  });
+
+  logDebug(config, `Sending "${article.title}" (${payload.length} chars) to GitHub Models`);
+  const responseText = await runGitHubModelsPrompt(config.githubModels, payload);
+  logDebug(config, `Response: ${singleLine(responseText, 220)}`);
+
+  return extractModelPhrases(responseText)
+    .map(phrase => singleLine(decodeHtmlEntities(phrase), config.phraseFormatting.maxLength))
+    .filter(Boolean)
+    .map(phrase => appendSourceSuffix(phrase, article.source, article.time, article.metadata));
+}
+
+const DELAY_BETWEEN_REQUESTS_MS = 2000;
+const MAX_RETRIES = 3;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export async function buildModelArticlePhrases(
@@ -210,70 +249,43 @@ export async function buildModelArticlePhrases(
   config: Config,
   options: BuildModelArticlePhrasesOptions = {},
 ): Promise<string[]> {
-  const chunks = chunkArticles(articles, config.githubModels);
-  let completedChunks = 0;
+  options.onProgress?.(`Generating phrases with GitHub Models (${articles.length} article${articles.length === 1 ? '' : 's'})`);
 
-  options.onProgress?.(`Generating phrases with GitHub Models (${chunks.length} batch${chunks.length === 1 ? '' : 'es'})`);
-
-  const processChunk = async (chunk: ArticleItem[], index: number): Promise<string[]> => {
-    const contentBudget = config.githubModels.maxArticleContentLength;
-    const instruction = resolvePrompt(config.githubModels, options.sourceType);
-    const payload = JSON.stringify({
-      instruction,
-      maxLength: config.phraseFormatting.maxLength,
-      maxPhrasesPerArticle: config.githubModels.maxPhrasesPerArticle,
-      items: chunk.map(article => ({
-        title: article.title ?? '',
-        source: article.source ?? '',
-        time: article.time ?? '',
-        content: (article.articleContent ?? article.content ?? '').slice(0, contentBudget),
-        link: article.link ?? '',
-      })),
-    });
-
-    logDebug(config, `Sending ${chunk.length} items (${payload.length} chars) to GitHub Models for chunk ${index + 1}/${chunks.length}`);
-    const responseText = await runGitHubModelsPrompt(config.githubModels, payload);
-    logDebug(config, `Model response preview: ${singleLine(responseText, 220)}`);
-
-    completedChunks += 1;
-    options.onProgress?.(`Generated GitHub Models phrases (${completedChunks}/${chunks.length})`);
-
-    // Tag each phrase with the source/time/metadata from the article
-    const article = chunk[0];
-
-    return extractModelPhrases(responseText)
-      .map(phrase => singleLine(decodeHtmlEntities(phrase), config.phraseFormatting.maxLength))
-      .filter(Boolean)
-      .map(phrase => appendSourceSuffix(phrase, article?.source, article?.time, article?.metadata));
-  };
-
-  // Process chunks with bounded concurrency and a delay between batches
-  const maxConcurrency = config.githubModels.maxConcurrency;
   const allPhrases: string[] = [];
   let lastError: unknown;
 
-  for (let start = 0; start < chunks.length; start += maxConcurrency) {
-    // Pause between batches to avoid rate limits
-    if (start > 0) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+  for (let i = 0; i < articles.length; i++) {
+    const article = articles[i];
+    const title = article.title ?? 'untitled';
+    options.onProgress?.(`Summarizing (${i + 1}/${articles.length}): ${title.length > 60 ? title.slice(0, 60) + '…' : title}`);
+    let phrases: string[] | undefined;
 
-    const batch = chunks.slice(start, start + maxConcurrency);
-    const settledResults = await Promise.allSettled(
-      batch.map((chunk, batchIndex) => processChunk(chunk, start + batchIndex)),
-    );
-
-    for (const result of settledResults) {
-      if (result.status === 'fulfilled') {
-        allPhrases.push(...result.value);
-      } else {
-        completedChunks += 1;
-        lastError = result.reason;
-        const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
-        logDebug(config, `Chunk failed: ${message}`);
-        options.onProgress?.(`GitHub Models batch failed (${completedChunks}/${chunks.length}): ${message}`);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        phrases = await summarizeArticle(article, config, options.sourceType);
+        break;
+      } catch (error: unknown) {
+        const is429 = error instanceof Error && error.message.includes('429');
+        if (is429 && attempt < MAX_RETRIES) {
+          const backoff = attempt * 5000;
+          options.onProgress?.(`Rate limited — waiting ${backoff / 1000}s before retry (${attempt}/${MAX_RETRIES})`);
+          await sleep(backoff);
+          continue;
+        }
+        lastError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        logDebug(config, `Failed "${article.title}": ${message}`);
+        options.onProgress?.(`GitHub Models failed (${i + 1}/${articles.length}): ${message}`);
+        break;
       }
     }
+
+    if (phrases && phrases.length > 0) {
+      allPhrases.push(...phrases);
+      options.onPhrases?.(phrases);
+    }
+
+    options.onProgress?.(`Generated phrases (${i + 1}/${articles.length})`);
   }
 
   if (allPhrases.length === 0 && lastError) {

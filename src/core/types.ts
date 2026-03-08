@@ -137,6 +137,7 @@ export interface CliOverrides extends Partial<Config> {
 	dryRun?: boolean;
 	interactive?: boolean;
 	uninstall?: boolean;
+	clearCache?: boolean;
 	triggerSchedulerNow?: boolean;
 	createNewConfig?: boolean;
 	installScheduler?: boolean;

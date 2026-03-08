@@ -47,7 +47,7 @@ export const DEFAULT_CONFIG: Config = {
   githubModels: {
     enabled: false,
     endpoint: 'https://models.github.ai/inference',
-    model: 'openai/gpt-4o-mini',
+    model: 'openai/gpt-4.1-mini',
     tokenEnvVar: 'GITHUB_MODELS_TOKEN',
     maxInputItems: 10,
     maxInputTokens: 16000,
@@ -128,27 +128,11 @@ export function readConfigFile(configPath = CONFIG_PATH): Partial<Config> {
   return JSON.parse(readFileSync(configPath, 'utf8')) as Partial<Config>;
 }
 
-import { DEFAULT_SOURCE_PROMPTS } from './githubModels.js';
-
 export function writeConfigFile(configPath: string, config: Config): void {
-  // Only persist prompts the user actually customized — skip defaults so code updates stay current
-  const userPrompts: Record<string, string> = {};
-  for (const [key, value] of Object.entries(config.githubModels.prompts ?? {})) {
-    if (value !== DEFAULT_SOURCE_PROMPTS[key]) {
-      userPrompts[key] = value;
-    }
-  }
-
-  const { prompts: _prompts, systemPrompt, ...restModels } = config.githubModels;
   const persistedConfig: Config = {
     ...config,
     verbose: false,
     debug: false,
-    githubModels: {
-      ...restModels,
-      ...(systemPrompt ? { systemPrompt } : {}),
-      ...(Object.keys(userPrompts).length > 0 ? { prompts: userPrompts } : {}),
-    } as Config['githubModels'],
   };
 
   mkdirSync(dirname(configPath), { recursive: true });
@@ -629,11 +613,6 @@ export function mergeConfig(base: Config, fileConfig: Partial<Config>, argConfig
       ...base.githubModels,
       ...(fileConfig.githubModels ?? {}),
       ...(argConfig.githubModels ?? {}),
-      prompts: {
-        ...(base.githubModels.prompts ?? {}),
-        ...(fileConfig.githubModels?.prompts ?? {}),
-        ...(argConfig.githubModels?.prompts ?? {}),
-      },
     },
     stockQuotes: {
       ...base.stockQuotes,
