@@ -1,0 +1,80 @@
+name: Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 */6 * * *' # Every 6 hours — catches upstream API changes
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  models: read
+
+jobs:
+  dry-run-sources:
+    name: Dry Run — Individual Sources
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source:
+          - name: RSS (GitHub Blog)
+            flags: --feed https://github.blog/feed/ --limit 5
+          - name: Hacker News
+            flags: --use-hacker-news --hn-feed top --hn-max-items 3 --hn-min-score 0
+          - name: Stocks
+            flags: --stocks MSFT,NVDA --use-stocks
+          - name: Weather
+            flags: --use-weather-alerts --weather-zip 33312
+          - name: Earthquakes
+            flags: --use-earthquakes --quake-min-magnitude 4 --quake-limit 3
+          - name: GitHub Commits
+            flags: --use-github --github-mode repo-commits --github-repo microsoft/vscode --github-max-items 3 --github-since-hours 168
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 'Dry run: ${{ matrix.source.name }}'
+        run: npx tsx bin/thinking-phrases.ts --dry-run ${{ matrix.source.flags }} --verbose
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dry-run-config:
+    name: Dry Run — Saved Config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Dry run with hn-top config (no models)
+        run: npx tsx bin/thinking-phrases.ts --dry-run --config configs/hn-top.config.json --no-models --verbose
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dry-run-models:
+    name: Dry Run — With GitHub Models
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Dry run with AI summarization
+        run: |
+          npx tsx bin/thinking-phrases.ts --dry-run \
+            --use-hacker-news --hn-feed top --hn-max-items 2 --hn-min-score 0 \
+            --use-models --fetch-article-content \
+            --verbose
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
