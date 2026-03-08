@@ -10,7 +10,7 @@ The VS Code setting looks like this:
 "chat.agent.thinking.phrases": {
   "mode": "replace",
   "phrases": [
-    "BTC - USD $66,978.23 ▼ 2.02% 🟢",
+    "NVDA $128.44 ▼ 0.84%",
     "Copilot code review now accounts for over 20% of all code reviews on GitHub, reflecting a tenfold increase in usage since its launch. — The GitHub Blog (2d ago)",
     "Multiple cursors enable simultaneous operations on syntax nodes, significantly enhancing bulk editing and refactoring capabilities. — Hacker News @ravenical 378 pts (17h ago)",
     "77°F, Mostly Cloudy, Wind E 50 mph — Fort Lauderdale, FL — Weather.gov"

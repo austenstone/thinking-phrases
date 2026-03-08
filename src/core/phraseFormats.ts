@@ -125,7 +125,7 @@ export interface StockPhraseOpts {
   template?: string;
 }
 
-/** Default: "MSFT $425.30 ▲ 1.25% 🟢" */
+/** Default: "MSFT $425.30 ▲ 1.25%" */
 export function formatStockPhrase(vars: StockPhraseVars, opts?: StockPhraseOpts): string {
   if (opts?.template) {
     return applyFormatTemplate(opts.template, { ...vars });
