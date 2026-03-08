@@ -163,6 +163,7 @@ async function fetchCurrentConditions(context: WeatherLookupContext, config: Con
       source: 'Weather.gov',
       content: title,
       articleContent: title,
+      skipModelRewrite: true,
     };
   } catch {
     return null;
@@ -179,6 +180,7 @@ function buildNoAlertsArticle(context: WeatherLookupContext): ArticleItem {
     link: context.lookupUrl,
     content: `Lookup: ${context.lookupUrl}`,
     articleContent: `No active weather alerts are currently active near ${context.locationLabel}. Lookup: ${context.lookupUrl}`,
+    skipModelRewrite: true,
   };
 }
 

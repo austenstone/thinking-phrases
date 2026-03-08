@@ -157,6 +157,8 @@ export interface ArticleItem {
 	articleContent?: string;
 	/** Source-specific metadata for suffix display (e.g. HN score, commit delta) */
 	metadata?: Record<string, string | undefined>;
+	/** When true, the article's displayPhrase is final and should not be rewritten by AI models */
+	skipModelRewrite?: boolean;
 }
 
 export interface StockItem {

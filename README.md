@@ -8,9 +8,9 @@ Turn your VS Code thinking indicator into a live dashboard. Static tip packs, re
 npx thinking-phrases --interactive
 ```
 
-That's it. No install, no clone, no config files. The interactive CLI walks you through picking sources, previewing phrases, writing to VS Code settings, and optionally installing a macOS scheduler.
+No install, no clone, no config files. The interactive CLI walks you through picking sources, previewing phrases, writing to VS Code settings, and optionally installing a macOS scheduler.
 
-Or maybe you just want the [static thinking phrases](https://github.com/austenstone/thinking-phrases/tree/main/out)
+Or just grab the [static thinking phrases](https://github.com/austenstone/thinking-phrases/tree/main/out) directly.
 
 ## Features
 
@@ -49,15 +49,20 @@ Pre-built JSON packs for when you want something stable:
 
 ### Interactive CLI
 
-A guided terminal UI that walks you through source selection, config, preview, and installation — no flag memorization required.
+A guided terminal UI built with [`@clack/prompts`](https://github.com/bombshell-dev/clack) that walks you through source selection, config, preview, and installation — no flag memorization required.
 
 ### macOS scheduler
 
 A `launchd` job that refreshes your phrases on a cron-like interval. Set it to 5 minutes for stocks, an hour for news, whatever you want.
 
-### Multiple config profiles
+### Config profiles
 
-Keep separate configs for different moods. `configs/github-timeline.config.json` for work, `configs/stocks-only.config.json` for market hours, swap between them.
+Save named configs and switch between them. The interactive CLI saves configs to `configs/` automatically, or create them manually:
+
+```bash
+npx thinking-phrases --config configs/stocks.config.json
+npx thinking-phrases --config configs/github-timeline.config.json
+```
 
 ### One-liner examples
 
@@ -74,8 +79,14 @@ npx thinking-phrases --stocks MSFT,NVDA,TSLA --feed https://github.blog/feed/
 # Earthquakes near a ZIP
 npx thinking-phrases --use-earthquakes --quake-zip 94103 --quake-min-magnitude 2
 
-# Weather alerts near a ZIP
+# Weather conditions + alerts near a ZIP
 npx thinking-phrases --use-weather-alerts --weather-zip 33312
+
+# Hacker News top stories with min score
+npx thinking-phrases --use-hacker-news --hn-feed top --hn-max-items 15 --hn-min-score 100
+
+# Custom JSON API
+npx thinking-phrases --use-custom-json --json-url "https://hn.algolia.com/api/v1/search?tags=front_page" --json-items-path hits --json-title-field title
 
 # Dry run (preview only, don't write)
 npx thinking-phrases --dry-run --use-github --github-mode feed --github-feed-kind organization --github-org github
@@ -104,7 +115,7 @@ npm run start:interactive
 
 ### RSS / Atom feeds
 
-Any RSS or Atom feed URL. Google News, GitHub Blog, Ars Technica, your company blog — whatever you want.
+Any RSS or Atom feed URL. Google News, GitHub Blog, Ars Technica, your company blog — whatever you want. When AI is enabled, the engine fetches full article HTML and passes it to the model for richer summaries.
 
 ```json
 "feeds": [
@@ -113,18 +124,23 @@ Any RSS or Atom feed URL. Google News, GitHub Blog, Ars Technica, your company b
 ]
 ```
 
+Default refresh: every 6 hours (`rssFetchIntervalSeconds: 21600`).
+
 ### Stock quotes
 
-Live prices via Yahoo Finance. Supports market state labels (pre-market, after-hours).
+Live prices via Yahoo Finance. Supports market state labels (pre-market, after-hours, closed).
 
 ```json
 "stockQuotes": {
   "enabled": true,
   "symbols": ["MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "AMD"],
   "includeMarketState": true,
-  "showClosed": false
+  "showClosed": false,
+  "fetchIntervalSeconds": 60
 }
 ```
+
+CLI: `--stocks MSFT,NVDA,TSLA` or `--use-stocks` / `--no-stocks`
 
 ### Hacker News
 
@@ -135,13 +151,16 @@ Top, new, best, ask, show, or jobs feed. Configurable minimum score and item cou
   "enabled": true,
   "feed": "top",
   "maxItems": 10,
-  "minScore": 50
+  "minScore": 50,
+  "fetchIntervalSeconds": 300
 }
 ```
 
+CLI: `--use-hacker-news --hn-feed top --hn-max-items 10 --hn-min-score 50`
+
 ### Earthquakes (USGS)
 
-Enter a ZIP code and the engine resolves it to lat/lon, then queries the USGS earthquake catalog within a configurable radius.
+Enter a ZIP code (or place name) and the engine resolves it to lat/lon, then queries the USGS earthquake catalog within a configurable radius.
 
 ```json
 "earthquakes": {
@@ -149,13 +168,18 @@ Enter a ZIP code and the engine resolves it to lat/lon, then queries the USGS ea
   "zipCode": "94103",
   "minMagnitude": 2,
   "radiusKm": 500,
-  "limit": 10
+  "windowHours": 24,
+  "limit": 10,
+  "orderBy": "time",
+  "fetchIntervalSeconds": 1800
 }
 ```
 
+CLI: `--use-earthquakes --quake-zip 94103 --quake-min-magnitude 2 --quake-radius-km 500 --quake-order time`
+
 ### Weather (NOAA/NWS)
 
-Enter a ZIP code and the engine resolves it to coordinates, finds the nearest NWS observation station, and fetches **current conditions** (temperature, description, wind, humidity). Also checks for active severe weather alerts.
+Enter a ZIP code and the engine resolves it to coordinates, finds the nearest NWS observation station, and fetches **current conditions** (temperature, description, wind, humidity). Also checks for active severe weather alerts filtered by severity.
 
 If no ZIP is configured, the interactive CLI auto-detects your location via IP geolocation.
 
@@ -163,16 +187,20 @@ If no ZIP is configured, the interactive CLI auto-detects your location via IP g
 "weatherAlerts": {
   "enabled": true,
   "zipCode": "33312",
+  "area": "FL",
   "minimumSeverity": "moderate",
-  "limit": 10
+  "limit": 10,
+  "fetchIntervalSeconds": 1800
 }
 ```
 
-Example output: `Fort Lauderdale, FL, 81°F, Partly Cloudy — Weather.gov`
+Severity levels: `minor`, `moderate`, `severe`, `extreme`.
+
+CLI: `--use-weather-alerts --weather-zip 33312 --weather-severity severe`
 
 ### Custom JSON API
 
-Point it at any JSON endpoint. Map title, content, link, source, date, and ID fields. Works with anything that returns an array of objects.
+Point it at any JSON endpoint. Map title, content, link, source, date, and ID fields. Works with anything that returns an array of objects. Supports multiple sources via `customJsonSources[]` in config files.
 
 ```json
 "customJson": {
@@ -180,19 +208,23 @@ Point it at any JSON endpoint. Map title, content, link, source, date, and ID fi
   "url": "https://hn.algolia.com/api/v1/search?tags=front_page",
   "itemsPath": "hits",
   "titleField": "title",
+  "contentField": "summary",
   "linkField": "url",
   "sourceLabel": "HN API",
   "dateField": "created_at",
   "idField": "objectID",
-  "maxItems": 10
+  "maxItems": 10,
+  "fetchIntervalSeconds": 3600
 }
 ```
+
+CLI: `--use-custom-json --json-url <url> --json-items-path hits --json-title-field title`
 
 ### GitHub activity
 
 Three modes for GitHub data:
 
-**Repo commits** — recent commits from a specific repository. Includes short SHA, line deltas, and author handle in the phrase. When AI is enabled with extra context, the model gets the **full commit diff**.
+**Repo commits** — recent commits from a specific repository. Includes short SHA, line deltas, and author handle in the phrase. When AI is enabled, the model gets the **full commit diff** for richer summaries.
 
 ```json
 "githubActivity": {
@@ -201,7 +233,9 @@ Three modes for GitHub data:
   "repo": "microsoft/vscode",
   "branch": "main",
   "maxItems": 10,
-  "tokenEnvVar": "GITHUB_TOKEN"
+  "sinceHours": 24,
+  "tokenEnvVar": "GITHUB_TOKEN",
+  "fetchIntervalSeconds": 300
 }
 ```
 
@@ -232,10 +266,12 @@ Available feed kinds: `timeline`, `current-user-public`, `current-user`, `curren
 
 ## Phrase format
 
-Phrases are content-first with source attribution at the end. Each source type has a customizable template:
+Phrases are content-first with source attribution at the end. Each source type has a customizable template using `%variable%` substitution:
 
 ```json
 "phraseFormatting": {
+  "includeSource": true,
+  "includeTime": true,
   "maxLength": 140,
   "templates": {
     "article": "%title% — %source% (%time%)",
@@ -247,6 +283,8 @@ Phrases are content-first with source attribution at the end. Each source type h
 }
 ```
 
+The template engine automatically strips empty `()[]{}`, collapses repeated separators, and cleans extra whitespace.
+
 AI-generated phrases get their source suffix appended automatically with source-specific metadata:
 - **HN**: `— HN @author 342 pts (2h ago)`
 - **GitHub commits**: `— vscode +12/-3 @octocat (5m ago)`
@@ -256,15 +294,23 @@ AI-generated phrases get their source suffix appended automatically with source-
 
 When enabled, each article is sent individually to GitHub Models for rewriting into concise, factual phrases. The model focuses on content only — source attribution (`— Source (time)`) and source-specific metadata (HN score, commit deltas, author) are appended automatically after the response.
 
-Uses the [OpenAI SDK](https://github.com/openai/openai-node) for compatibility with all models including reasoning models (`gpt-5`, `o3`). Falls back to basic formatting if auth or inference fails.
+Uses the [OpenAI SDK](https://github.com/openai/openai-node) for compatibility with all models including reasoning models (`gpt-5`, `o3`). Falls back to basic formatting if auth or inference fails. Results are cached per-article (default TTL: 7 days) so re-runs don't burn tokens.
 
 ```json
 "githubModels": {
   "enabled": true,
   "model": "openai/gpt-4o-mini",
   "endpoint": "https://models.github.ai/inference",
-  "maxConcurrency": 3,
-  "fetchArticleContent": true
+  "tokenEnvVar": "GITHUB_MODELS_TOKEN",
+  "maxInputItems": 10,
+  "maxInputTokens": 16000,
+  "maxTokens": 500,
+  "maxConcurrency": 1,
+  "maxPhrasesPerArticle": 2,
+  "temperature": 0.2,
+  "fetchArticleContent": true,
+  "maxArticleContentLength": 6000,
+  "cacheTtlSeconds": 604800
 }
 ```
 
@@ -284,9 +330,21 @@ The interactive installer includes built-in presets to get started fast:
 
 | Preset | Sources |
 |--------|---------|
-| **Dev Pulse** | Google Tech news + Hacker News top stories |
-| **Market Watch** | Big-tech stock quotes with fast-refresh defaults |
-| **World Signals** | Earthquakes + severe weather + Hacker News best |
+| **Dev Pulse** | Google Tech news + Hacker News top (8 items, min score 80) |
+| **Market Watch** | MSFT, NVDA, AMZN, GOOGL, AMD, TSLA stock quotes |
+| **World Signals** | Earthquakes (M4.5+) + severe weather + Hacker News best |
+
+## Phrase store
+
+All phrases are persisted per-source in `~/.cache/thinking-phrases/`:
+
+| File | Purpose |
+|------|---------|
+| `phrase-store.json` | Phrases from all sources, keyed by source type |
+| `source-timestamps.json` | Last fetch time per source (for interval-based refresh) |
+| `model-cache.json` | AI-generated phrases keyed by article ID (TTL: 7 days) |
+
+This means sources with different refresh intervals coexist cleanly — stocks refresh every 60s while RSS refreshes every 6h, and both stay in the merged output.
 
 ## Scheduler (macOS)
 
@@ -295,7 +353,7 @@ The interactive installer can set up a `launchd` scheduler that refreshes your p
 ```bash
 npm run schedule             # default: every 3600s (1 hour)
 npm run schedule -- 300      # every 5 minutes
-npm run schedule -- 900 ./configs/stocks-only.config.json
+npm run schedule -- 900 ./configs/hn-top.config.json
 ```
 
 The scheduler runs at the OS level. Your VS Code settings update silently in the background.
@@ -306,24 +364,12 @@ npm run schedule:remove      # remove the scheduler
 npx thinking-phrases --uninstall  # remove thinking phrases from settings
 ```
 
-## Config profiles
-
-Keep multiple configs in `configs/` and switch between them:
-
-```text
-configs/
-  rss-settings.config.json
-  github-timeline.config.json
-  github-commits.config.json
-  google-news.config.json
-  google-technology-stocks.config.json
-  hn-best-earthquakes-weather-alerts.config.json
-  stocks-only.config.json
-```
+You can also manage the scheduler from CLI flags:
 
 ```bash
-npm start -- --config configs/stocks-only.config.json
-npm run schedule -- 300 configs/stocks-only.config.json
+npx thinking-phrases --install-scheduler     # install/update the launchd job
+npx thinking-phrases --trigger-scheduler-now # trigger immediate refresh
+npx thinking-phrases --uninstall-scheduler   # remove the launchd job
 ```
 
 ## Static packs
@@ -361,7 +407,15 @@ Standalone string arrays — just drop them in:
 - WoW loading screen tips (109)
 - Inspirational quotes (1,614 — from `dwyl/quotes`, GPL-2.0)
 
+Install a static pack directly:
+
+```bash
+npx thinking-phrases --static-pack out/typescript-tips.json
+```
+
 ## CLI reference
+
+### Commands
 
 | Command | Description |
 |---------|-------------|
@@ -369,26 +423,113 @@ Standalone string arrays — just drop them in:
 | `npx thinking-phrases --dry-run` | Preview phrases without writing |
 | `npx thinking-phrases` | Write phrases to VS Code settings |
 | `npx thinking-phrases --uninstall` | Remove thinking phrases from settings |
+| `npx thinking-phrases --static-pack <path>` | Install a static phrase pack |
 
-All `--flags` from the data source sections above work with any of these commands.
+### Global flags
+
+| Flag | Description |
+|------|-------------|
+| `--config <path>` | Load a saved config file |
+| `--settings <path>` | Custom VS Code settings.json path |
+| `--dry-run` | Preview phrases without writing to settings |
+| `--verbose` | Verbose output |
+| `--debug` | Debug output (includes verbose) |
+| `--limit <num>` | Max total phrases (default: 100) |
+| `--mode append\|replace` | Append to or replace existing phrases |
+| `--target auto\|insiders\|stable` | Which VS Code edition to target |
+| `--max-length <num>` | Max phrase length in characters (default: 140) |
+| `--no-source` | Omit source attribution from phrases |
+| `--no-time` | Omit relative time from phrases |
+
+### Source flags
+
+| Flag | Description |
+|------|-------------|
+| `--feed <url>` | Add an RSS/Atom feed URL (repeatable) |
+| `--use-stocks` / `--no-stocks` | Enable/disable stock quotes |
+| `--stocks <SYMBOLS>` | Comma-separated stock tickers |
+| `--use-hacker-news` | Enable Hacker News |
+| `--hn-feed <type>` | top, new, best, ask, show, or jobs |
+| `--hn-max-items <num>` | Max HN items |
+| `--hn-min-score <num>` | Minimum HN score filter |
+| `--use-earthquakes` | Enable earthquake source |
+| `--quake-zip <zip>` | ZIP code for earthquake search center |
+| `--quake-place <name>` | Place name for earthquake search |
+| `--quake-min-magnitude <num>` | Minimum magnitude filter |
+| `--quake-radius-km <num>` | Search radius in km |
+| `--quake-hours <num>` | Time window in hours |
+| `--quake-order time\|magnitude` | Sort order |
+| `--quake-limit <num>` | Max earthquake results |
+| `--use-weather-alerts` | Enable weather source |
+| `--weather-zip <zip>` | ZIP code for weather |
+| `--weather-area <area>` | US state code (e.g. FL) |
+| `--weather-severity <level>` | Minimum severity (minor/moderate/severe/extreme) |
+| `--weather-limit <num>` | Max weather alert results |
+| `--use-custom-json` | Enable custom JSON source |
+| `--json-url <url>` | JSON endpoint URL |
+| `--json-items-path <path>` | JSONPath to items array |
+| `--json-title-field <field>` | Field name for title |
+| `--json-content-field <field>` | Field name for content |
+| `--json-link-field <field>` | Field name for link |
+| `--json-source-field <field>` | Field name for source |
+| `--json-source-label <label>` | Fallback source label |
+| `--json-date-field <field>` | Field name for date |
+| `--json-id-field <field>` | Field name for ID |
+| `--json-max-items <num>` | Max JSON items |
+| `--use-github` | Enable GitHub activity |
+| `--github-mode <mode>` | repo-commits, org-commits, or feed |
+| `--github-repo <owner/repo>` | Target repository |
+| `--github-org <org>` | Target organization |
+| `--github-branch <branch>` | Branch filter |
+| `--github-feed-kind <kind>` | Feed type (see GitHub activity section) |
+| `--github-feed-url <url>` | Custom feed URL |
+| `--github-max-items <num>` | Max GitHub items |
+| `--github-since-hours <num>` | Lookback window in hours |
+| `--github-token-env <var>` | Env var name for GitHub token |
+
+### AI model flags
+
+| Flag | Description |
+|------|-------------|
+| `--use-models` / `--no-models` | Enable/disable AI rewriting |
+| `--model <name>` | Model ID (default: `openai/gpt-4o-mini`) |
+| `--models-endpoint <url>` | Inference endpoint |
+| `--models-token-env <var>` | Env var for model auth token |
+| `--models-max-concurrency <num>` | Parallel inference requests |
+| `--models-max-input-items <num>` | Max articles sent to model |
+| `--models-max-input-tokens <num>` | Max input token budget |
+| `--models-max-tokens <num>` | Max output tokens per request |
+| `--models-max-phrases-per-article <num>` | Phrases generated per article |
+| `--models-temperature <0-1>` | Sampling temperature |
+| `--fetch-article-content` / `--no-fetch-article-content` | Fetch full article HTML for AI |
+| `--max-article-content-length <num>` | Max chars of article body sent to model |
+
+### Scheduler flags
+
+| Flag | Description |
+|------|-------------|
+| `--install-scheduler` | Install/update macOS launchd job |
+| `--trigger-scheduler-now` | Trigger the scheduler immediately |
+| `--uninstall-scheduler` | Remove the launchd job |
 
 ## How it works
 
 ```
-Sources → Normalize → Format → Write
+Sources → Normalize → Format → Cache → Write
 ```
 
-1. **Sources** fetch live data (RSS, stocks, GitHub, USGS, NOAA, JSON APIs)
-2. **Core** normalizes everything into article or stock items
-3. **Formatter** builds display phrases — content first, source/metadata suffix appended (e.g. `— HN @user 342 pts (2h ago)`). AI-rewritten phrases get the same suffix treatment.
-4. **Phrase store** persists phrases per-source in `~/.cache/thinking-phrases/` so different refresh intervals don't clobber each other
-5. **Sink** writes the merged phrases into VS Code `settings.json` using `jsonc-parser` (preserves comments and formatting)
+1. **Sources** fetch live data (RSS, stocks, GitHub, USGS, NOAA, JSON APIs) — each respects its own refresh interval
+2. **Core** normalizes everything into `ArticleItem` or `StockItem` objects
+3. **Formatter** builds display phrases from customizable templates — content first, source/metadata suffix appended
+4. **AI** (optional) rewrites phrases via GitHub Models, with per-article caching to avoid redundant inference
+5. **Phrase store** persists phrases per-source in `~/.cache/thinking-phrases/` so different refresh intervals don't clobber each other
+6. **Sink** writes the merged phrases into VS Code `settings.json` using `jsonc-parser` (preserves comments and formatting)
 
-The source catalog is modular. Each source is a simple `{ isEnabled, fetch }` object registered in the catalog. Adding a new source means writing one file and registering it.
+The source catalog is modular. Each source is a `{ type, isEnabled, fetch }` object registered in the catalog. Adding a new source means writing one file and registering it.
 
 ## Portability
 
-Settings path auto-detection works on macOS, Linux, and Windows. Supports both VS Code Stable and Insiders. You can also pass `--settings` to point at any path.
+Settings path auto-detection works on macOS, Linux, and Windows. Supports both VS Code Stable and Insiders. You can also pass `--settings` to point at any path or `--target` to force a specific edition.
 
 ## References
 

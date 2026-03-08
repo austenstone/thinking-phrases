@@ -331,9 +331,14 @@ export async function runDynamicPhrases(): Promise<void> {
 
         const stockPhrases = dedupePhrases(stocks.map(stock => buildStockPhrase(stock, config)));
 
+        // Articles with skipModelRewrite keep their displayPhrase as-is (e.g. weather conditions)
+        const modelEligible = articles.filter(a => !a.skipModelRewrite);
+        const preFormatted = articles.filter(a => a.skipModelRewrite);
+        const preFormattedPhrases = buildBasicArticlePhrases(preFormatted, config);
+
         const hydratedArticles = config.githubModels.enabled && config.githubModels.fetchArticleContent
-          ? await hydrateArticleContent(articles, config)
-          : articles;
+          ? await hydrateArticleContent(modelEligible, config)
+          : modelEligible;
 
         const fallbackArticlePhrases = buildBasicArticlePhrases(hydratedArticles, config);
         let articlePhrases: string[];
@@ -366,6 +371,7 @@ export async function runDynamicPhrases(): Promise<void> {
           articlePhrases = fallbackArticlePhrases;
         }
 
+        articlePhrases = dedupePhrases([...preFormattedPhrases, ...articlePhrases]);
         const sourcePhrases = dedupePhrases([...stockPhrases, ...articlePhrases]);
         storePhrases(type, sourcePhrases);
         logInfo(config, `Stored ${sourcePhrases.length} phrases for ${type}`);
