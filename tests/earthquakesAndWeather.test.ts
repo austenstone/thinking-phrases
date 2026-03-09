@@ -148,7 +148,7 @@ describe('weatherAlertsSource', () => {
     expect(alert.source).toBe('NWS Alerts');
   });
 
-  it('returns no-alerts article when no results match', async () => {
+  it('returns empty array when no results match', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ features: [] })),
     );
@@ -165,7 +165,6 @@ describe('weatherAlertsSource', () => {
     };
 
     const result = await weatherAlertsSource.fetch(config);
-    expect(result).toHaveLength(1);
-    expect((result[0] as ArticleItem).title).toContain('No active alerts');
+    expect(result).toHaveLength(0);
   });
 });

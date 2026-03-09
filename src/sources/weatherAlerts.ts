@@ -1,4 +1,3 @@
-import { formatWeatherNoAlertsPhrase } from '../core/phraseFormats.js';
 import type { ArticleItem, Config, PhraseSource, WeatherSeverity } from '../core/types.js';
 import { fetchJson, fetchUsZipLocation, logInfo, relativeTime, truncate } from '../core/utils.js';
 
@@ -172,20 +171,6 @@ async function fetchCurrentConditions(context: WeatherLookupContext, config: Con
   }
 }
 
-function buildNoAlertsArticle(context: WeatherLookupContext): ArticleItem {
-  return {
-    type: 'article',
-    id: `weather-alert:none:${context.locationLabel.toLowerCase()}`,
-    source: 'Weather.gov',
-    title: `No active alerts near ${context.locationLabel}`,
-    displayPhrase: formatWeatherNoAlertsPhrase({ location: context.locationLabel }),
-    link: context.lookupUrl,
-    content: `Lookup: ${context.lookupUrl}`,
-    articleContent: `No active weather alerts are currently active near ${context.locationLabel}. Lookup: ${context.lookupUrl}`,
-    skipModelRewrite: true,
-  };
-}
-
 export async function fetchWeatherAlertArticles(config: Config): Promise<ArticleItem[]> {
   if (!config.weatherAlerts.enabled) {
     return [];
@@ -257,10 +242,7 @@ export async function fetchWeatherAlertArticles(config: Config): Promise<Article
 
   if (items.length === 0 && lookupContext) {
     logInfo(config, `No active weather alerts for ${lookupContext.locationLabel}. Lookup: ${lookupContext.lookupUrl}`);
-    const results: ArticleItem[] = [];
-    if (conditionsArticle) results.push(conditionsArticle);
-    results.push(buildNoAlertsArticle(lookupContext));
-    return results;
+    return conditionsArticle ? [conditionsArticle] : [];
   }
 
   if (conditionsArticle) {

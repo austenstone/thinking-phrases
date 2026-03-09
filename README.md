@@ -27,7 +27,7 @@ Or just grab the [static thinking phrases](https://github.com/austenstone/thinki
 | Source | What it shows | Example phrase |
 |--------|--------------|----------------|
 | **RSS / Atom** | Any feed URL | `Copilot code review now accounts for over 20% of all code reviews on GitHub, reflecting a tenfold increase in usage since its launch. — The GitHub Blog (2d ago)` |
-| **Stocks** | Live ticker quotes via Yahoo Finance | `BTC - USD $67,030.16 ▼ 1.83%` |
+| **Stocks** | Live ticker quotes via Yahoo Finance | `BTC - USD $66,978.23 ▼ 2.02% 🟢` |
 | **Hacker News** | Top/new/best/ask/show/jobs | `Multiple cursors enable simultaneous operations on syntax nodes, significantly enhancing bulk editing and refactoring capabilities. — Hacker News @ravenical 378 pts (17h ago)` |
 | **Earthquakes** | USGS earthquake catalog near a ZIP | `M4.2 — 12 km NE of Ridgecrest, CA — USGS (38m ago)` |
 | **Weather** | Temp, humidity, wind + NWS alerts | `77°F, Mostly Cloudy, Wind E 50 mph — Fort Lauderdale, FL — Weather.gov` |
