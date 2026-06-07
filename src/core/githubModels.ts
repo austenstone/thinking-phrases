@@ -237,7 +237,6 @@ async function summarizeArticle(article: ArticleItem, config: Config, sourceType
     .map(phrase => appendSourceSuffix(phrase, article.source, article.time, article.metadata));
 }
 
-const DELAY_BETWEEN_REQUESTS_MS = 2000;
 const MAX_RETRIES = 3;
 
 async function sleep(ms: number): Promise<void> {
