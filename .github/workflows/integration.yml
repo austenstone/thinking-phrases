@@ -25,6 +25,7 @@ jobs:
             flags: --use-hacker-news --hn-feed top --hn-max-items 3 --hn-min-score 0
           - name: Stocks
             flags: --stocks MSFT,NVDA --use-stocks
+            allow-empty: true
           - name: Weather
             flags: --use-weather-alerts --weather-zip 33312
           - name: Earthquakes
@@ -39,6 +40,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: 'Dry run: ${{ matrix.source.name }}'
+        continue-on-error: ${{ matrix.source.allow-empty == true }}
         run: npx tsx bin/thinking-phrases.ts --dry-run ${{ matrix.source.flags }} --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
